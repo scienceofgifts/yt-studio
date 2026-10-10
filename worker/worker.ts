@@ -230,7 +230,31 @@ ${customInstructions ? `\nNOTES: "${customInstructions}"\n` : ''}`;
           return Response.json({ success: false, error: 'Missing imageBase64 payload.' }, { status: 400, headers: corsHeaders });
         }
 
-        const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+        let cleanBase64 = '';
+        let imageMimeType = mimeType || 'image/jpeg';
+
+        if (typeof imageBase64 === 'string' && (imageBase64.startsWith('http://') || imageBase64.startsWith('https://'))) {
+          try {
+            const imgRes = await fetch(imageBase64);
+            if (!imgRes.ok) {
+              return Response.json({ success: false, error: `Failed to download image URL: HTTP ${imgRes.status}` }, { status: 400, headers: corsHeaders });
+            }
+            const contentType = imgRes.headers.get('content-type');
+            if (contentType) imageMimeType = contentType.split(';')[0];
+            const arrayBuffer = await imgRes.arrayBuffer();
+            let binary = '';
+            const bytes = new Uint8Array(arrayBuffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            cleanBase64 = btoa(binary);
+          } catch (err: any) {
+            return Response.json({ success: false, error: `Could not fetch image URL: ${err.message || err}` }, { status: 400, headers: corsHeaders });
+          }
+        } else if (typeof imageBase64 === 'string') {
+          cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+        }
+
         const analysisSystemInstruction = `Analyze reference image for Ambience Intelligence Studio. Return ONLY a valid JSON object:
 {
   "mainSubject": "...",
@@ -250,7 +274,7 @@ ${customInstructions ? `\nNOTES: "${customInstructions}"\n` : ''}`;
 
         const contents = {
           parts: [
-            { inlineData: { mimeType, data: cleanBase64 } },
+            { inlineData: { mimeType: imageMimeType, data: cleanBase64 } },
             { text: `${analysisSystemInstruction}\n\nAnalyze reference image titled "${title}" (${category}). Notes: "${notes}".` },
           ],
         };

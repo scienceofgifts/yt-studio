@@ -8,6 +8,11 @@ import {
   LessonLearnedItem,
   VideoPerformanceRecord,
   ReferenceVideoLabItem,
+  VideoDepthPlanes,
+  VideoAestheticAnalysis,
+  VideoKinematicAnalysis,
+  VideoAcousticAnalysis,
+  CreativeReplicationBlueprint,
   AssistantSession,
   ProductionRecipe,
 } from '../types/ambience';
@@ -277,6 +282,126 @@ const DEFAULT_VIDEOS: VideoPerformanceRecord[] = [
     updatedAt: 1712275200000,
   },
 ];
+
+export function normalizeVideoLabItem(raw: any): ReferenceVideoLabItem {
+  const item = raw && typeof raw === 'object' ? raw : {};
+
+  const depthPlanes: VideoDepthPlanes = {
+    foreground: item.aesthetic?.depthPlanes?.foreground || item.aesthetic?.depth_planes?.foreground || 'Clear foreground framing anchor',
+    middleGround: item.aesthetic?.depthPlanes?.middleGround || item.aesthetic?.depth_planes?.middleGround || 'Central focal region and primary subjects',
+    background: item.aesthetic?.depthPlanes?.background || item.aesthetic?.depth_planes?.background || 'Distant horizon and ambient backdrop',
+  };
+
+  const lighting = {
+    primarySource: item.aesthetic?.lighting?.primarySource || 'Warm ambient key light',
+    colorTemperature: item.aesthetic?.lighting?.colorTemperature || 'Warm Amber (2700K)',
+    intensity: item.aesthetic?.lighting?.intensity || 'cozy-dim',
+    volumetricRays: Boolean(item.aesthetic?.lighting?.volumetricRays),
+    flickeringFlames: Boolean(item.aesthetic?.lighting?.flickeringFlames),
+    reflections: Boolean(item.aesthetic?.lighting?.reflections),
+    notes: item.aesthetic?.lighting?.notes || 'Balanced soft chiaroscuro contrast',
+  };
+
+  const aesthetic: VideoAestheticAnalysis = {
+    worldArchetype: item.aesthetic?.worldArchetype || 'Cozy Ambience Sanctuary',
+    locationType: item.aesthetic?.locationType || 'indoor',
+    season: item.aesthetic?.season || 'autumn',
+    timeOfDay: item.aesthetic?.timeOfDay || 'night',
+    weather: item.aesthetic?.weather || 'rain',
+    secondaryWeather: item.aesthetic?.secondaryWeather || undefined,
+    waterElements: {
+      enabled: Boolean(item.aesthetic?.waterElements?.enabled),
+      type: item.aesthetic?.waterElements?.type || 'none',
+      behavior: item.aesthetic?.waterElements?.behavior || 'none',
+      notes: item.aesthetic?.waterElements?.notes || '',
+    },
+    lighting,
+    colorPalette: Array.isArray(item.aesthetic?.colorPalette) && item.aesthetic.colorPalette.length > 0
+      ? item.aesthetic.colorPalette
+      : [
+          { hex: '#D97706', name: 'Warm Amber Gold', role: 'Key Light Glow' },
+          { hex: '#1E293B', name: 'Deep Night Cobalt', role: 'Backdrop Shadow' },
+        ],
+    materialsAndTextures: Array.isArray(item.aesthetic?.materialsAndTextures) && item.aesthetic.materialsAndTextures.length > 0
+      ? item.aesthetic.materialsAndTextures
+      : ['Aged wood grain', 'Rain-streaked glass pane'],
+    atmosphericEffects: Array.isArray(item.aesthetic?.atmosphericEffects) && item.aesthetic.atmosphericEffects.length > 0
+      ? item.aesthetic.atmosphericEffects
+      : ['Gentle airborne dust motes', 'Soft window rain rivulets'],
+    depthPlanes,
+    composition: {
+      angle: item.aesthetic?.composition?.angle || 'eye-level',
+      framing: item.aesthetic?.composition?.framing || 'Medium wide shot',
+      focalLengthFeel: item.aesthetic?.composition?.focalLengthFeel || '35mm widescreen',
+      notes: item.aesthetic?.composition?.notes || '',
+    },
+  };
+
+  const kinematics: VideoKinematicAnalysis = {
+    cameraBehavior: item.kinematics?.cameraBehavior || 'Locked Tripod',
+    motionSubjects: Array.isArray(item.kinematics?.motionSubjects) && item.kinematics.motionSubjects.length > 0
+      ? item.kinematics.motionSubjects
+      : ['Subtle flame flicker', 'Rain streaming down glass'],
+    motionPacing: item.kinematics?.motionPacing || 'Ultra-Slow / Meditative',
+    loopCycleEstimateSeconds: typeof item.kinematics?.loopCycleEstimateSeconds === 'number' ? item.kinematics.loopCycleEstimateSeconds : 10,
+    loopSeamHazards: Array.isArray(item.kinematics?.loopSeamHazards) && item.kinematics.loopSeamHazards.length > 0
+      ? item.kinematics.loopSeamHazards
+      : ['Ensure consistent flame geometry across seam'],
+    cinematicRules: Array.isArray(item.kinematics?.cinematicRules) && item.kinematics.cinematicRules.length > 0
+      ? item.kinematics.cinematicRules
+      : ['Lock tripod strictly; zero camera movement'],
+  };
+
+  const acoustics: VideoAcousticAnalysis = {
+    musicalStyle: item.acoustics?.musicalStyle || 'Subtle Ambient Acoustic',
+    instrumentation: Array.isArray(item.acoustics?.instrumentation) && item.acoustics.instrumentation.length > 0
+      ? item.acoustics.instrumentation
+      : ['Warm Synth Pad', 'Environmental Foley'],
+    tempoBpmRange: item.acoustics?.tempoBpmRange || '60 BPM',
+    foleyLayers: Array.isArray(item.acoustics?.foleyLayers) && item.acoustics.foleyLayers.length > 0
+      ? item.acoustics.foleyLayers
+      : [{ name: 'Window Rain', percentage: 60, description: 'Steady rain on window pane' }],
+    frequencyMasteringNotes: item.acoustics?.frequencyMasteringNotes || 'Rolled off high frequencies above 7kHz',
+    keyMoods: Array.isArray(item.acoustics?.keyMoods) && item.acoustics.keyMoods.length > 0
+      ? item.acoustics.keyMoods
+      : ['Calm', 'Immersive', 'Restful'],
+  };
+
+  const blueprint: CreativeReplicationBlueprint = {
+    directorVision: item.blueprint?.directorVision || 'Synthesize a high-retention cozy sanctuary for Aesthetic Noise.',
+    translatedConfig: item.blueprint?.translatedConfig || {},
+    imagePrompt: item.blueprint?.imagePrompt || '',
+    videoPrompt: item.blueprint?.videoPrompt || '',
+    musicPrompt: item.blueprint?.musicPrompt || '',
+    productionChecklist: Array.isArray(item.blueprint?.productionChecklist) ? item.blueprint.productionChecklist : [],
+    reusableLessons: Array.isArray(item.blueprint?.reusableLessons) ? item.blueprint.reusableLessons : [],
+  };
+
+  const videoId = item.videoId || 'default';
+  const defaultThumbnail = videoId !== 'default'
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
+
+  return {
+    id: item.id || `vlab-${Date.now()}`,
+    url: item.url || (videoId !== 'default' ? `https://www.youtube.com/watch?v=${videoId}` : ''),
+    videoId,
+    title: item.title || 'YouTube Ambience Benchmark',
+    channelTitle: item.channelTitle || 'Ambient Channel',
+    thumbnailUrl: item.thumbnailUrl || defaultThumbnail,
+    duration: item.duration || '2:00:00',
+    analyzedAt: typeof item.analyzedAt === 'number' ? item.analyzedAt : Date.now(),
+    favorite: Boolean(item.favorite),
+    notes: item.notes || '',
+    tags: Array.isArray(item.tags) ? item.tags : ['YouTube Benchmark', 'Ambience'],
+    matchConfidence: typeof item.matchConfidence === 'number' ? item.matchConfidence : 90,
+    aesthetic,
+    kinematics,
+    acoustics,
+    blueprint,
+    modelUsed: item.modelUsed,
+  };
+}
 
 const DEFAULT_VIDEO_LAB_ITEMS: ReferenceVideoLabItem[] = [
   {
@@ -930,18 +1055,26 @@ export class StorageService {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.VIDEO_LAB);
       if (!data) {
-        localStorage.setItem(STORAGE_KEYS.VIDEO_LAB, JSON.stringify(DEFAULT_VIDEO_LAB_ITEMS));
-        return DEFAULT_VIDEO_LAB_ITEMS;
+        const normalizedDefaults = DEFAULT_VIDEO_LAB_ITEMS.map(normalizeVideoLabItem);
+        localStorage.setItem(STORAGE_KEYS.VIDEO_LAB, JSON.stringify(normalizedDefaults));
+        return normalizedDefaults;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(normalizeVideoLabItem);
+      }
+      const normalizedDefaults = DEFAULT_VIDEO_LAB_ITEMS.map(normalizeVideoLabItem);
+      localStorage.setItem(STORAGE_KEYS.VIDEO_LAB, JSON.stringify(normalizedDefaults));
+      return normalizedDefaults;
     } catch {
-      return DEFAULT_VIDEO_LAB_ITEMS;
+      return DEFAULT_VIDEO_LAB_ITEMS.map(normalizeVideoLabItem);
     }
   }
 
   static saveVideoLabItem(item: ReferenceVideoLabItem): void {
-    const items = this.getVideoLabItems().filter((v) => v.id !== item.id);
-    items.unshift(item);
+    const normalizedItem = normalizeVideoLabItem(item);
+    const items = this.getVideoLabItems().filter((v) => v.id !== normalizedItem.id);
+    items.unshift(normalizedItem);
     localStorage.setItem(STORAGE_KEYS.VIDEO_LAB, JSON.stringify(items));
   }
 

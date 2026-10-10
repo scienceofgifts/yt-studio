@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useAmbience } from '../../context/AmbienceContext';
-import { StorageService } from '../../services/storage';
+import { StorageService, normalizeVideoLabItem } from '../../services/storage';
 import { AiPromptService } from '../../services/aiPromptService';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import {
   ReferenceVideoLabItem,
   CreativeReplicationBlueprint,
@@ -79,7 +80,8 @@ export const ReferenceVideoLabView: React.FC = () => {
 
   // Find currently inspected item
   const selectedItem = useMemo(() => {
-    return videoLabItems.find((v) => v.id === selectedItemId) || videoLabItems[0] || null;
+    const item = videoLabItems.find((v) => v.id === selectedItemId) || videoLabItems[0] || null;
+    return item ? normalizeVideoLabItem(item) : null;
   }, [videoLabItems, selectedItemId]);
 
   // Filtered saved library
@@ -195,16 +197,16 @@ export const ReferenceVideoLabView: React.FC = () => {
     if (!selectedItem) return;
     const refItem: ReferenceItem = {
       id: `ref-vlab-${selectedItem.videoId}-${Date.now()}`,
-      title: `${selectedItem.title.slice(0, 50)} (Video Benchmark)`,
+      title: `${(selectedItem.title || 'Video Benchmark').slice(0, 50)} (Video Benchmark)`,
       category: 'Video Benchmark',
       imageUrl: selectedItem.thumbnailUrl,
-      tags: [...(selectedItem.tags || []), 'YouTube Benchmark', selectedItem.aesthetic.worldArchetype],
+      tags: [...(selectedItem.tags || []), 'YouTube Benchmark', selectedItem?.aesthetic?.worldArchetype || 'Cozy Ambience'],
       roles: ['Composition', 'Lighting', 'Atmosphere'],
       assignedProjectIds: [],
-      notes: `Extracted from YouTube reference: ${selectedItem.url}\nChannel: ${selectedItem.channelTitle}\nDirector Vision: ${selectedItem.blueprint.directorVision}`,
-      atmosphereKeywords: selectedItem.acoustics.keyMoods || ['Cinematic', 'Atmospheric'],
-      colorNotes: selectedItem.aesthetic.colorPalette.map((c) => `${c.name} (${c.hex})`).join(', '),
-      audioNotes: `${selectedItem.acoustics.musicalStyle} | Foley: ${selectedItem.acoustics.foleyLayers.map((l) => `${l.name} (${l.percentage}%)`).join(', ')}`,
+      notes: `Extracted from YouTube reference: ${selectedItem.url}\nChannel: ${selectedItem.channelTitle}\nDirector Vision: ${selectedItem?.blueprint?.directorVision || ''}`,
+      atmosphereKeywords: selectedItem?.acoustics?.keyMoods || ['Cinematic', 'Atmospheric'],
+      colorNotes: (selectedItem?.aesthetic?.colorPalette || []).map((c) => `${c.name} (${c.hex})`).join(', '),
+      audioNotes: `${selectedItem?.acoustics?.musicalStyle || 'Ambient'} | Foley: ${(selectedItem?.acoustics?.foleyLayers || []).map((l) => `${l.name} (${l.percentage}%)`).join(', ')}`,
       createdAt: Date.now(),
     };
     StorageService.saveReference(refItem);
@@ -213,7 +215,7 @@ export const ReferenceVideoLabView: React.FC = () => {
 
   // Action: Record Lessons into Experience Memory
   const handleRecordLessons = () => {
-    if (!selectedItem || !selectedItem.blueprint.reusableLessons.length) return;
+    if (!selectedItem || !selectedItem?.blueprint?.reusableLessons?.length) return;
     let addedCount = 0;
     selectedItem.blueprint.reusableLessons.forEach((lesson, index) => {
       const lessonItem: LessonLearnedItem = {
@@ -226,7 +228,7 @@ export const ReferenceVideoLabView: React.FC = () => {
         promptType: 'bundle',
         observedResult: 'Worked well',
         confidenceLevel: 'High',
-        tags: ['YouTube Lab', selectedItem.aesthetic.worldArchetype],
+        tags: ['YouTube Lab', selectedItem?.aesthetic?.worldArchetype || 'Cozy Ambience'],
         createdAt: Date.now(),
       };
       StorageService.saveLesson(lessonItem);
@@ -245,48 +247,48 @@ Analyzed: ${new Date(selectedItem.analyzedAt).toLocaleDateString()}
 Confidence: ${selectedItem.matchConfidence}%
 
 ## 1. Director's Vision (Aesthetic Noise Reinterpretation)
-${selectedItem.blueprint.directorVision}
+${selectedItem?.blueprint?.directorVision || ''}
 
 ## 2. Visual Architecture
-- World Archetype: ${selectedItem.aesthetic.worldArchetype}
-- Season & Time: ${selectedItem.aesthetic.season}, ${selectedItem.aesthetic.timeOfDay}
-- Weather: ${selectedItem.aesthetic.weather}${selectedItem.aesthetic.secondaryWeather ? ` (${selectedItem.aesthetic.secondaryWeather})` : ''}
-- Lighting: ${selectedItem.aesthetic.lighting.primarySource} (${selectedItem.aesthetic.lighting.colorTemperature})
-- Foreground: ${selectedItem.aesthetic.depthPlanes.foreground}
-- Middle Ground: ${selectedItem.aesthetic.depthPlanes.middleGround}
-- Background: ${selectedItem.aesthetic.depthPlanes.background}
-- Materials: ${selectedItem.aesthetic.materialsAndTextures.join(', ')}
-- Atmospheric FX: ${selectedItem.aesthetic.atmosphericEffects.join(', ')}
+- World Archetype: ${selectedItem?.aesthetic?.worldArchetype || 'N/A'}
+- Season & Time: ${selectedItem?.aesthetic?.season || 'N/A'}, ${selectedItem?.aesthetic?.timeOfDay || 'N/A'}
+- Weather: ${selectedItem?.aesthetic?.weather || 'N/A'}${selectedItem?.aesthetic?.secondaryWeather ? ` (${selectedItem.aesthetic.secondaryWeather})` : ''}
+- Lighting: ${selectedItem?.aesthetic?.lighting?.primarySource || 'N/A'} (${selectedItem?.aesthetic?.lighting?.colorTemperature || 'N/A'})
+- Foreground: ${selectedItem?.aesthetic?.depthPlanes?.foreground || 'N/A'}
+- Middle Ground: ${selectedItem?.aesthetic?.depthPlanes?.middleGround || 'N/A'}
+- Background: ${selectedItem?.aesthetic?.depthPlanes?.background || 'N/A'}
+- Materials: ${(selectedItem?.aesthetic?.materialsAndTextures || []).join(', ')}
+- Atmospheric FX: ${(selectedItem?.aesthetic?.atmosphericEffects || []).join(', ')}
 
 ## 3. Kinematic Motion Physics & Loop Safety
-- Camera: ${selectedItem.kinematics.cameraBehavior}
-- Motion Pacing: ${selectedItem.kinematics.motionPacing}
-- Loop Cycle: ~${selectedItem.kinematics.loopCycleEstimateSeconds} seconds
-- Motion Anchors: ${selectedItem.kinematics.motionSubjects.join(', ')}
-- Seam Hazards: ${selectedItem.kinematics.loopSeamHazards.join('; ')}
+- Camera: ${selectedItem?.kinematics?.cameraBehavior || 'N/A'}
+- Motion Pacing: ${selectedItem?.kinematics?.motionPacing || 'N/A'}
+- Loop Cycle: ~${selectedItem?.kinematics?.loopCycleEstimateSeconds || 10} seconds
+- Motion Anchors: ${(selectedItem?.kinematics?.motionSubjects || []).join(', ')}
+- Seam Hazards: ${(selectedItem?.kinematics?.loopSeamHazards || []).join('; ')}
 
 ## 4. Acoustic Foley & Musical Score
-- Style: ${selectedItem.acoustics.musicalStyle} (${selectedItem.acoustics.tempoBpmRange})
-- Instrumentation: ${selectedItem.acoustics.instrumentation.join(', ')}
+- Style: ${selectedItem?.acoustics?.musicalStyle || 'N/A'} (${selectedItem?.acoustics?.tempoBpmRange || 'N/A'})
+- Instrumentation: ${(selectedItem?.acoustics?.instrumentation || []).join(', ')}
 - Foley Layers:
-${selectedItem.acoustics.foleyLayers.map((l) => `  * ${l.name} (${l.percentage}%): ${l.description}`).join('\n')}
-- Mastering Notes: ${selectedItem.acoustics.frequencyMasteringNotes}
+${(selectedItem?.acoustics?.foleyLayers || []).map((l) => `  * ${l.name} (${l.percentage}%): ${l.description}`).join('\n')}
+- Mastering Notes: ${selectedItem?.acoustics?.frequencyMasteringNotes || 'N/A'}
 
 ## 5. Production Prompts
 
 ### Master Image Prompt (Midjourney / Flux)
 \`\`\`
-${selectedItem.blueprint.imagePrompt}
+${selectedItem?.blueprint?.imagePrompt || ''}
 \`\`\`
 
 ### Video Animation Prompt (Runway Gen-3 / Kling)
 \`\`\`
-${selectedItem.blueprint.videoPrompt}
+${selectedItem?.blueprint?.videoPrompt || ''}
 \`\`\`
 
 ### Audio Foley Score Prompt (Suno / Udio / Sound Engine)
 \`\`\`
-${selectedItem.blueprint.musicPrompt}
+${selectedItem?.blueprint?.musicPrompt || ''}
 \`\`\`
 `;
     handleCopy(md, 'export-all');
@@ -727,448 +729,451 @@ ${selectedItem.blueprint.musicPrompt}
                 </button>
               </div>
 
-              {/* Tab 1: Production Blueprint (The Core Deliverable) */}
-              {activeTab === 'blueprint' && (
-                <div className="space-y-6">
-                  {/* Director's Vision Card */}
-                  <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#E8AE62] uppercase tracking-wider">
-                      <Compass className="w-4 h-4" />
-                      <span>Director's Creative Synthesis (Aesthetic Noise Translation)</span>
-                    </div>
-                    <p className="text-xs text-[#F2EEE6] leading-relaxed">
-                      {selectedItem.blueprint.directorVision}
-                    </p>
-                  </div>
-
-                  {/* Production Prompts Grid */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#A1AEC0]">
-                        Coordinated Production Prompts
-                      </h3>
-                      <span className="text-[11px] text-[#718096]">
-                        Optimized for Midjourney v6.1, Runway Gen-3 & Suno
-                      </span>
-                    </div>
-
-                    {/* Image Prompt */}
+              {/* Tab Content Container with ErrorBoundary Protection */}
+              <ErrorBoundary fallbackTitle="Deconstruction View Error">
+                {/* Tab 1: Production Blueprint (The Core Deliverable) */}
+                {activeTab === 'blueprint' && (
+                  <div className="space-y-6">
+                    {/* Director's Vision Card */}
                     <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>1. Master Visual Image Prompt (Midjourney / Flux)</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(selectedItem.blueprint.imagePrompt, 'img-prompt')}
-                          className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
-                        >
-                          {copiedKey === 'img-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedKey === 'img-prompt' ? 'Copied' : 'Copy Prompt'}</span>
-                        </button>
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#E8AE62] uppercase tracking-wider">
+                        <Compass className="w-4 h-4" />
+                        <span>Director's Creative Synthesis (Aesthetic Noise Translation)</span>
                       </div>
-                      <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
-                        {selectedItem.blueprint.imagePrompt}
+                      <p className="text-xs text-[#F2EEE6] leading-relaxed">
+                        {selectedItem?.blueprint?.directorVision || 'No director vision synthesis available.'}
                       </p>
                     </div>
 
-                    {/* Video Prompt */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                    {/* Production Prompts Grid */}
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
-                          <Film className="w-3.5 h-3.5" />
-                          <span>2. Video Animation Prompt (Runway Gen-3 / Kling 1.5)</span>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#A1AEC0]">
+                          Coordinated Production Prompts
+                        </h3>
+                        <span className="text-[11px] text-[#718096]">
+                          Optimized for Midjourney v6.1, Runway Gen-3 & Suno
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(selectedItem.blueprint.videoPrompt, 'vid-prompt')}
-                          className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
-                        >
-                          {copiedKey === 'vid-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedKey === 'vid-prompt' ? 'Copied' : 'Copy Prompt'}</span>
-                        </button>
                       </div>
-                      <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
-                        {selectedItem.blueprint.videoPrompt}
-                      </p>
-                    </div>
 
-                    {/* Music Prompt */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
-                          <Music className="w-3.5 h-3.5" />
-                          <span>3. Music Score & Foley Prompt (Suno / Udio / Sound Engine)</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(selectedItem.blueprint.musicPrompt, 'mus-prompt')}
-                          className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
-                        >
-                          {copiedKey === 'mus-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedKey === 'mus-prompt' ? 'Copied' : 'Copy Prompt'}</span>
-                        </button>
-                      </div>
-                      <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
-                        {selectedItem.blueprint.musicPrompt}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Production Checklist & Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Checklist */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
-                      <div className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4 text-[#E8AE62]" />
-                        <span>Production Readiness Checklist</span>
-                      </div>
-                      <ul className="space-y-1.5 text-xs text-[#F2EEE6]">
-                        {selectedItem.blueprint.productionChecklist.map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#E8AE62] shrink-0 mt-1.5" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Cross-Studio Actions */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3 flex flex-col justify-between">
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
-                          <Share2 className="w-4 h-4 text-[#E8AE62]" />
-                          <span>Studio Integration</span>
-                        </div>
-                        <p className="text-[11px] text-[#718096]">
-                          Save reference assets and lessons across your workspace.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={handleSaveToReferenceLibrary}
-                          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#141E2D] hover:bg-[#1E2B3E] text-xs font-semibold text-[#F2EEE6] border border-[#1E2B3E] transition-colors"
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-[#E8AE62]" />
-                          <span>Save to Reference Library</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleRecordLessons}
-                          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#141E2D] hover:bg-[#1E2B3E] text-xs font-semibold text-[#F2EEE6] border border-[#1E2B3E] transition-colors"
-                        >
-                          <Lightbulb className="w-3.5 h-3.5 text-[#E8AE62]" />
-                          <span>Record Lessons into Experience Memory</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Visual Atmosphere Deconstruction */}
-              {activeTab === 'aesthetic' && (
-                <div className="space-y-6">
-                  {/* Three-Plane Depth Hierarchy */}
-                  <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8AE62] flex items-center gap-1.5">
-                      <Layers className="w-4 h-4" />
-                      <span>Three-Plane Depth Staging</span>
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
-                        <span className="text-[10px] font-bold uppercase text-[#718096]">Foreground Plane</span>
-                        <p className="text-xs text-[#F2EEE6] leading-relaxed">
-                          {selectedItem.aesthetic.depthPlanes.foreground}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
-                        <span className="text-[10px] font-bold uppercase text-[#E8AE62]">Middle Ground (Focus)</span>
-                        <p className="text-xs text-[#F2EEE6] leading-relaxed">
-                          {selectedItem.aesthetic.depthPlanes.middleGround}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
-                        <span className="text-[10px] font-bold uppercase text-[#718096]">Background / Horizon</span>
-                        <p className="text-xs text-[#F2EEE6] leading-relaxed">
-                          {selectedItem.aesthetic.depthPlanes.background}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lighting & Color Architecture */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Lighting Architecture */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
-                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
-                        <Flame className="w-4 h-4 text-[#E8AE62]" />
-                        <span>Lighting Architecture</span>
-                      </h4>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
-                          <span className="text-[#718096]">Primary Light:</span>
-                          <span className="text-[#F2EEE6] font-medium">{selectedItem.aesthetic.lighting.primarySource}</span>
-                        </div>
-                        <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
-                          <span className="text-[#718096]">Color Temperature:</span>
-                          <span className="text-[#E8AE62] font-medium">{selectedItem.aesthetic.lighting.colorTemperature}</span>
-                        </div>
-                        <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
-                          <span className="text-[#718096]">Volumetric Rays / Flames:</span>
-                          <span className="text-[#F2EEE6]">
-                            {selectedItem.aesthetic.lighting.volumetricRays ? 'Volumetric Rays Active' : 'Diffused'} •{' '}
-                            {selectedItem.aesthetic.lighting.flickeringFlames ? 'Flickering Embers' : 'Static Light'}
+                      {/* Image Prompt */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>1. Master Visual Image Prompt (Midjourney / Flux)</span>
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(selectedItem?.blueprint?.imagePrompt || '', 'img-prompt')}
+                            className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
+                          >
+                            {copiedKey === 'img-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedKey === 'img-prompt' ? 'Copied' : 'Copy Prompt'}</span>
+                          </button>
                         </div>
-                        <p className="text-[11px] text-[#A1AEC0] italic pt-1">
-                          {selectedItem.aesthetic.lighting.notes}
+                        <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
+                          {selectedItem?.blueprint?.imagePrompt || 'No image prompt generated.'}
+                        </p>
+                      </div>
+
+                      {/* Video Prompt */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
+                            <Film className="w-3.5 h-3.5" />
+                            <span>2. Video Animation Prompt (Runway Gen-3 / Kling 1.5)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(selectedItem?.blueprint?.videoPrompt || '', 'vid-prompt')}
+                            className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
+                          >
+                            {copiedKey === 'vid-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedKey === 'vid-prompt' ? 'Copied' : 'Copy Prompt'}</span>
+                          </button>
+                        </div>
+                        <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
+                          {selectedItem?.blueprint?.videoPrompt || 'No video prompt generated.'}
+                        </p>
+                      </div>
+
+                      {/* Music Prompt */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#E8AE62] flex items-center gap-1.5">
+                            <Music className="w-3.5 h-3.5" />
+                            <span>3. Music Score & Foley Prompt (Suno / Udio / Sound Engine)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(selectedItem?.blueprint?.musicPrompt || '', 'mus-prompt')}
+                            className="flex items-center gap-1 text-[11px] text-[#A1AEC0] hover:text-[#E8AE62] transition-colors"
+                          >
+                            {copiedKey === 'mus-prompt' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedKey === 'mus-prompt' ? 'Copied' : 'Copy Prompt'}</span>
+                          </button>
+                        </div>
+                        <p className="text-xs font-mono text-[#F2EEE6] bg-[#141E2D]/60 p-3 rounded-lg leading-relaxed select-all">
+                          {selectedItem?.blueprint?.musicPrompt || 'No music prompt generated.'}
                         </p>
                       </div>
                     </div>
 
-                    {/* Color Palette Swatches */}
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
-                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
-                        <Sliders className="w-4 h-4 text-[#E8AE62]" />
-                        <span>Extracted Color Palette</span>
+                    {/* Production Checklist & Actions */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Checklist */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
+                        <div className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-[#E8AE62]" />
+                          <span>Production Readiness Checklist</span>
+                        </div>
+                        <ul className="space-y-1.5 text-xs text-[#F2EEE6]">
+                          {(selectedItem?.blueprint?.productionChecklist || []).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#E8AE62] shrink-0 mt-1.5" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Cross-Studio Actions */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <div className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
+                            <Share2 className="w-4 h-4 text-[#E8AE62]" />
+                            <span>Studio Integration</span>
+                          </div>
+                          <p className="text-[11px] text-[#718096]">
+                            Save reference assets and lessons across your workspace.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={handleSaveToReferenceLibrary}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#141E2D] hover:bg-[#1E2B3E] text-xs font-semibold text-[#F2EEE6] border border-[#1E2B3E] transition-colors"
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-[#E8AE62]" />
+                            <span>Save to Reference Library</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRecordLessons}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#141E2D] hover:bg-[#1E2B3E] text-xs font-semibold text-[#F2EEE6] border border-[#1E2B3E] transition-colors"
+                          >
+                            <Lightbulb className="w-3.5 h-3.5 text-[#E8AE62]" />
+                            <span>Record Lessons into Experience Memory</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Visual Atmosphere Deconstruction */}
+                {activeTab === 'aesthetic' && (
+                  <div className="space-y-6">
+                    {/* Three-Plane Depth Hierarchy */}
+                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8AE62] flex items-center gap-1.5">
+                        <Layers className="w-4 h-4" />
+                        <span>Three-Plane Depth Staging</span>
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-[#718096]">Foreground Plane</span>
+                          <p className="text-xs text-[#F2EEE6] leading-relaxed">
+                            {selectedItem?.aesthetic?.depthPlanes?.foreground || 'Clear foreground framing anchor'}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-[#E8AE62]">Middle Ground (Focus)</span>
+                          <p className="text-xs text-[#F2EEE6] leading-relaxed">
+                            {selectedItem?.aesthetic?.depthPlanes?.middleGround || 'Central focus region'}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-[#718096]">Background / Horizon</span>
+                          <p className="text-xs text-[#F2EEE6] leading-relaxed">
+                            {selectedItem?.aesthetic?.depthPlanes?.background || 'Distant background atmosphere'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lighting & Color Architecture */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Lighting Architecture */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
+                        <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
+                          <Flame className="w-4 h-4 text-[#E8AE62]" />
+                          <span>Lighting Architecture</span>
+                        </h4>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
+                            <span className="text-[#718096]">Primary Light:</span>
+                            <span className="text-[#F2EEE6] font-medium">{selectedItem?.aesthetic?.lighting?.primarySource || 'Ambient key light'}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
+                            <span className="text-[#718096]">Color Temperature:</span>
+                            <span className="text-[#E8AE62] font-medium">{selectedItem?.aesthetic?.lighting?.colorTemperature || 'Warm Amber (2700K)'}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-[#1E2B3E]">
+                            <span className="text-[#718096]">Volumetric Rays / Flames:</span>
+                            <span className="text-[#F2EEE6]">
+                              {selectedItem?.aesthetic?.lighting?.volumetricRays ? 'Volumetric Rays Active' : 'Diffused'} •{' '}
+                              {selectedItem?.aesthetic?.lighting?.flickeringFlames ? 'Flickering Embers' : 'Static Light'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#A1AEC0] italic pt-1">
+                            {selectedItem?.aesthetic?.lighting?.notes || 'Balanced soft contrast'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Color Palette Swatches */}
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2.5">
+                        <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
+                          <Sliders className="w-4 h-4 text-[#E8AE62]" />
+                          <span>Extracted Color Palette</span>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          {(selectedItem?.aesthetic?.colorPalette || []).map((swatch, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2.5 p-2 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E]"
+                            >
+                              <span
+                                className="w-7 h-7 rounded-md shrink-0 shadow-inner border border-white/10"
+                                style={{ backgroundColor: swatch.hex }}
+                              />
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-bold text-[#F2EEE6] truncate">{swatch.name}</div>
+                                <div className="text-[10px] font-mono text-[#E8AE62]">{swatch.hex}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Materials & Atmospheric Effects */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                        <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
+                          Materials & Textures
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(selectedItem?.aesthetic?.materialsAndTextures || []).map((mat, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2.5 py-1 rounded-lg bg-[#141E2D] border border-[#1E2B3E] text-xs text-[#F2EEE6]"
+                            >
+                              {mat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                        <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
+                          Atmospheric Physics & FX
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(selectedItem?.aesthetic?.atmosphericEffects || []).map((fx, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2.5 py-1 rounded-lg bg-[#141E2D] border border-[#1E2B3E] text-xs text-[#E8AE62]"
+                            >
+                              {fx}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 3: Kinematics & Loop Analysis */}
+                {activeTab === 'kinematics' && (
+                  <div className="space-y-6">
+                    {/* Motion Physics Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Camera Movement</span>
+                        <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-[#E8AE62]" />
+                          <span>{selectedItem?.kinematics?.cameraBehavior || 'Locked Tripod'}</span>
+                        </div>
+                        <p className="text-[11px] text-[#A1AEC0] pt-1">
+                          Locked tripod ensures zero pixel shift on looping boundaries.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Motion Pacing</span>
+                        <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-[#E8AE62]" />
+                          <span>{selectedItem?.kinematics?.motionPacing || 'Ultra-Slow / Meditative'}</span>
+                        </div>
+                        <p className="text-[11px] text-[#A1AEC0] pt-1">
+                          Gentle frequency preserves viewer relaxation and sleep state.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Estimated Loop Cycle</span>
+                        <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
+                          <RefreshCw className="w-4 h-4 text-[#E8AE62]" />
+                          <span>~{selectedItem?.kinematics?.loopCycleEstimateSeconds || 10} Seconds</span>
+                        </div>
+                        <p className="text-[11px] text-[#A1AEC0] pt-1">
+                          Optimal loop window for Runway Gen-3 and Kling video models.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Active Dynamic Subjects */}
+                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
+                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
+                        Dynamic Motion Subjects (What Moves)
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {selectedItem.aesthetic.colorPalette.map((swatch, idx) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {(selectedItem?.kinematics?.motionSubjects || []).map((sub, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-2.5 p-2 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E]"
+                            className="p-2.5 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] text-xs text-[#F2EEE6] flex items-center gap-2"
                           >
-                            <span
-                              className="w-7 h-7 rounded-md shrink-0 shadow-inner border border-white/10"
-                              style={{ backgroundColor: swatch.hex }}
-                            />
-                            <div className="min-w-0">
-                              <div className="text-[11px] font-bold text-[#F2EEE6] truncate">{swatch.name}</div>
-                              <div className="text-[10px] font-mono text-[#E8AE62]">{swatch.hex}</div>
+                            <span className="w-2 h-2 rounded-full bg-[#E8AE62]" />
+                            <span>{sub}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Seam Hazards & Looping Safeguards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/20 space-y-2">
+                        <h4 className="text-xs font-bold text-red-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Info className="w-4 h-4" />
+                          <span>Identified Loop Seam Hazards</span>
+                        </h4>
+                        <ul className="space-y-1 text-xs text-red-200/90">
+                          {(selectedItem?.kinematics?.loopSeamHazards || []).map((hazard, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span className="text-red-400 font-bold">•</span>
+                              <span>{hazard}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
+                        <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Cinematic Loop Safeguards</span>
+                        </h4>
+                        <ul className="space-y-1 text-xs text-emerald-200/90">
+                          {(selectedItem?.kinematics?.cinematicRules || []).map((rule, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span>{rule}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 4: Acoustic & Foley Profile */}
+                {activeTab === 'acoustics' && (
+                  <div className="space-y-6">
+                    {/* Acoustic Header Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Musical Style</span>
+                        <div className="text-xs font-bold text-[#F2EEE6]">{selectedItem?.acoustics?.musicalStyle || 'Ambient Soundscape'}</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Tempo & Meter</span>
+                        <div className="text-xs font-bold text-[#E8AE62]">{selectedItem?.acoustics?.tempoBpmRange || '60 BPM'}</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#718096]">Core Moods</span>
+                        <div className="text-xs font-bold text-[#F2EEE6]">
+                          {selectedItem?.acoustics?.keyMoods?.join(', ') || 'Calm, Immersive'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Layered Foley Mix Breakdown */}
+                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8AE62] flex items-center gap-1.5">
+                        <Volume2 className="w-4 h-4" />
+                        <span>Environmental Foley Mix Layering</span>
+                      </h3>
+                      <div className="space-y-3">
+                        {(selectedItem?.acoustics?.foleyLayers || []).map((layer, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span className="font-semibold text-[#F2EEE6]">{layer.name}</span>
+                              <span className="font-mono text-[#E8AE62] font-bold">{layer.percentage}%</span>
                             </div>
+                            <div className="w-full h-2 rounded-full bg-[#141E2D] overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#E8AE62] to-[#D97706] rounded-full"
+                                style={{ width: `${layer.percentage}%` }}
+                              />
+                            </div>
+                            <p className="text-[11px] text-[#718096]">{layer.description}</p>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Materials & Atmospheric Effects */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Mastering & Ear Fatigue Advice */}
                     <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
-                        Materials & Textures
+                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
+                        <Music className="w-4 h-4 text-[#E8AE62]" />
+                        <span>Frequency Curve & Ear Fatigue Mastering</span>
                       </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedItem.aesthetic.materialsAndTextures.map((mat, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 rounded-lg bg-[#141E2D] border border-[#1E2B3E] text-xs text-[#F2EEE6]"
-                          >
-                            {mat}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                      <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
-                        Atmospheric Physics & FX
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedItem.aesthetic.atmosphericEffects.map((fx, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 rounded-lg bg-[#141E2D] border border-[#1E2B3E] text-xs text-[#E8AE62]"
-                          >
-                            {fx}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Kinematics & Loop Analysis */}
-              {activeTab === 'kinematics' && (
-                <div className="space-y-6">
-                  {/* Motion Physics Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Camera Movement</span>
-                      <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
-                        <Camera className="w-4 h-4 text-[#E8AE62]" />
-                        <span>{selectedItem.kinematics.cameraBehavior}</span>
-                      </div>
-                      <p className="text-[11px] text-[#A1AEC0] pt-1">
-                        Locked tripod ensures zero pixel shift on looping boundaries.
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Motion Pacing</span>
-                      <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-[#E8AE62]" />
-                        <span>{selectedItem.kinematics.motionPacing}</span>
-                      </div>
-                      <p className="text-[11px] text-[#A1AEC0] pt-1">
-                        Gentle frequency preserves viewer relaxation and sleep state.
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Estimated Loop Cycle</span>
-                      <div className="text-sm font-bold text-[#F2EEE6] flex items-center gap-1.5">
-                        <RefreshCw className="w-4 h-4 text-[#E8AE62]" />
-                        <span>~{selectedItem.kinematics.loopCycleEstimateSeconds} Seconds</span>
-                      </div>
-                      <p className="text-[11px] text-[#A1AEC0] pt-1">
-                        Optimal loop window for Runway Gen-3 and Kling video models.
+                      <p className="text-xs text-[#F2EEE6] leading-relaxed">
+                        {selectedItem?.acoustics?.frequencyMasteringNotes || 'Smooth fatigue-free equalization'}
                       </p>
                     </div>
                   </div>
+                )}
 
-                  {/* Active Dynamic Subjects */}
-                  <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                    <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider">
-                      Dynamic Motion Subjects (What Moves)
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {selectedItem.kinematics.motionSubjects.map((sub, idx) => (
-                        <div
-                          key={idx}
-                          className="p-2.5 rounded-lg bg-[#141E2D]/60 border border-[#1E2B3E] text-xs text-[#F2EEE6] flex items-center gap-2"
-                        >
-                          <span className="w-2 h-2 rounded-full bg-[#E8AE62]" />
-                          <span>{sub}</span>
-                        </div>
-                      ))}
+                {/* Tab 5: Embedded YouTube Video Preview */}
+                {activeTab === 'player' && selectedItem && (
+                  <div className="space-y-4">
+                    <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-[#1E2B3E] shadow-xl">
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${selectedItem.videoId}?rel=0&modestbranding=1`}
+                        title={selectedItem.title}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-[#718096]">
+                      <span>Original Source: {selectedItem.channelTitle}</span>
+                      <a
+                        href={selectedItem.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#E8AE62] hover:underline"
+                      >
+                        <span>Open on YouTube</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     </div>
                   </div>
-
-                  {/* Seam Hazards & Looping Safeguards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/20 space-y-2">
-                      <h4 className="text-xs font-bold text-red-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <Info className="w-4 h-4" />
-                        <span>Identified Loop Seam Hazards</span>
-                      </h4>
-                      <ul className="space-y-1 text-xs text-red-200/90">
-                        {selectedItem.kinematics.loopSeamHazards.map((hazard, idx) => (
-                          <li key={idx} className="flex items-start gap-1.5">
-                            <span className="text-red-400 font-bold">•</span>
-                            <span>{hazard}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
-                      <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Cinematic Loop Safeguards</span>
-                      </h4>
-                      <ul className="space-y-1 text-xs text-emerald-200/90">
-                        {selectedItem.kinematics.cinematicRules.map((rule, idx) => (
-                          <li key={idx} className="flex items-start gap-1.5">
-                            <span className="text-emerald-400 font-bold">•</span>
-                            <span>{rule}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Acoustic & Foley Profile */}
-              {activeTab === 'acoustics' && (
-                <div className="space-y-6">
-                  {/* Acoustic Header Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Musical Style</span>
-                      <div className="text-xs font-bold text-[#F2EEE6]">{selectedItem.acoustics.musicalStyle}</div>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Tempo & Meter</span>
-                      <div className="text-xs font-bold text-[#E8AE62]">{selectedItem.acoustics.tempoBpmRange}</div>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-[#718096]">Core Moods</span>
-                      <div className="text-xs font-bold text-[#F2EEE6]">
-                        {selectedItem.acoustics.keyMoods?.join(', ') || 'Calm, Immersive'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Layered Foley Mix Breakdown */}
-                  <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8AE62] flex items-center gap-1.5">
-                      <Volume2 className="w-4 h-4" />
-                      <span>Environmental Foley Mix Layering</span>
-                    </h3>
-                    <div className="space-y-3">
-                      {selectedItem.acoustics.foleyLayers.map((layer, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="font-semibold text-[#F2EEE6]">{layer.name}</span>
-                            <span className="font-mono text-[#E8AE62] font-bold">{layer.percentage}%</span>
-                          </div>
-                          <div className="w-full h-2 rounded-full bg-[#141E2D] overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-[#E8AE62] to-[#D97706] rounded-full"
-                              style={{ width: `${layer.percentage}%` }}
-                            />
-                          </div>
-                          <p className="text-[11px] text-[#718096]">{layer.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Mastering & Ear Fatigue Advice */}
-                  <div className="p-4 rounded-xl bg-[#0B1018] border border-[#1E2B3E] space-y-2">
-                    <h4 className="text-xs font-bold text-[#A1AEC0] uppercase tracking-wider flex items-center gap-1.5">
-                      <Music className="w-4 h-4 text-[#E8AE62]" />
-                      <span>Frequency Curve & Ear Fatigue Mastering</span>
-                    </h4>
-                    <p className="text-xs text-[#F2EEE6] leading-relaxed">
-                      {selectedItem.acoustics.frequencyMasteringNotes}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 5: Embedded YouTube Video Preview */}
-              {activeTab === 'player' && (
-                <div className="space-y-4">
-                  <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-[#1E2B3E] shadow-xl">
-                    <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${selectedItem.videoId}?rel=0&modestbranding=1`}
-                      title={selectedItem.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#718096]">
-                    <span>Original Source: {selectedItem.channelTitle}</span>
-                    <a
-                      href={selectedItem.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[#E8AE62] hover:underline"
-                    >
-                      <span>Open on YouTube</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-              )}
+                )}
+              </ErrorBoundary>
             </div>
           ) : (
             <div className="p-12 text-center rounded-2xl bg-[#101722] border border-[#1E2B3E] space-y-4">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService } from '../../services/storage';
+import { AiPromptService } from '../../services/aiPromptService';
 import { ReferenceItem, ReferenceRole, ImageAnalysisResult, Project } from '../../types/ambience';
 import {
   Bookmark,
@@ -160,32 +161,23 @@ export const ReferenceLibraryView: React.FC = () => {
     setAnalysisError(null);
 
     try {
-      const response = await fetch('/api/gemini/analyze-reference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: item.imageUrl,
-          mimeType: item.mimeType || 'image/jpeg',
-          title: item.title,
-          category: item.category,
-          notes: item.notes,
-        }),
+      const result = await AiPromptService.analyzeReferenceImage({
+        imageBase64: item.imageUrl,
+        mimeType: item.mimeType || 'image/jpeg',
+        title: item.title,
+        category: item.category,
+        notes: item.notes,
       });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to analyze reference image.');
-      }
 
       const updatedItem: ReferenceItem = {
         ...item,
-        analysis: data.analysis,
+        analysis: result.analysis,
       };
 
       StorageService.saveReference(updatedItem);
       setReferences(StorageService.getReferences());
       setActiveItem(updatedItem);
-      setEditingAnalysis(data.analysis);
+      setEditingAnalysis(result.analysis);
     } catch (err: any) {
       console.error('Analysis error:', err);
       setAnalysisError(err.message || 'AI analysis failed.');

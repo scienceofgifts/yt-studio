@@ -205,15 +205,30 @@ Please generate the structured JSON output now.`;
     let contents: any;
 
     if (referenceImage && referenceImage.base64) {
-      // Clean base64 string if it contains data URI prefix
-      const cleanBase64 = referenceImage.base64.replace(/^data:[^;]+;base64,/, '');
-      const mimeType = referenceImage.mimeType || 'image/jpeg';
+      let cleanBase64 = referenceImage.base64;
+      let refMimeType = referenceImage.mimeType || 'image/jpeg';
+
+      if (cleanBase64.startsWith('http://') || cleanBase64.startsWith('https://')) {
+        try {
+          const imgRes = await fetch(cleanBase64, { signal: AbortSignal.timeout(8000) });
+          if (imgRes.ok) {
+            const contentType = imgRes.headers.get('content-type');
+            if (contentType) refMimeType = contentType.split(';')[0];
+            const arrayBuffer = await imgRes.arrayBuffer();
+            cleanBase64 = Buffer.from(arrayBuffer).toString('base64');
+          }
+        } catch (fetchErr) {
+          console.warn('Could not fetch reference image URL for prompt generation:', fetchErr);
+        }
+      } else {
+        cleanBase64 = cleanBase64.replace(/^data:[^;]+;base64,/, '');
+      }
 
       contents = {
         parts: [
           {
             inlineData: {
-              mimeType,
+              mimeType: refMimeType,
               data: cleanBase64,
             },
           },
@@ -325,7 +340,28 @@ app.post('/api/gemini/analyze-reference', async (req, res) => {
       });
     }
 
-    const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    let cleanBase64 = '';
+    let imageMimeType = mimeType || 'image/jpeg';
+
+    if (typeof imageBase64 === 'string' && (imageBase64.startsWith('http://') || imageBase64.startsWith('https://'))) {
+      try {
+        const imgRes = await fetch(imageBase64, { signal: AbortSignal.timeout(8000) });
+        if (!imgRes.ok) {
+          throw new Error(`HTTP ${imgRes.status} ${imgRes.statusText}`);
+        }
+        const contentType = imgRes.headers.get('content-type');
+        if (contentType) imageMimeType = contentType.split(';')[0];
+        const arrayBuffer = await imgRes.arrayBuffer();
+        cleanBase64 = Buffer.from(arrayBuffer).toString('base64');
+      } catch (fetchErr: any) {
+        return res.status(400).json({
+          success: false,
+          error: `Could not download reference image from URL (${imageBase64}): ${fetchErr.message || fetchErr}`,
+        });
+      }
+    } else if (typeof imageBase64 === 'string') {
+      cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    }
 
     const analysisSystemInstruction = `You are an expert master visual art historian, cinematographer, and generative AI visual intelligence analyst. Analyze the provided reference image with rigorous precision for the "Ambience Intelligence Studio" reference library.
 
@@ -359,7 +395,7 @@ Analyze the image and respond ONLY with a valid JSON object matching this exact 
       parts: [
         {
           inlineData: {
-            mimeType,
+            mimeType: imageMimeType,
             data: cleanBase64,
           },
         },

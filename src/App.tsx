@@ -25,6 +25,8 @@ import { ContextualAssistantPanel } from './components/layout/ContextualAssistan
 import { SettingsView } from './components/views/SettingsView';
 import { ImageManagerModal } from './components/modals/ImageManagerModal';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
 const StudioMainContent: React.FC = () => {
   const { activeView, toastMessage } = useAmbience();
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
@@ -51,19 +53,21 @@ const StudioMainContent: React.FC = () => {
         <div className="flex-1 flex min-w-0 overflow-hidden bg-[#0B1018]">
           {/* Scrollable Main Workspace */}
           <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
-            {activeView === 'create' && <CreateWorkspace />}
-            {activeView === 'recipes' && <RecipesView />}
-            {activeView === 'assistant' && <ProductionAssistantView />}
-            {activeView === 'workflow' && <ProductionWorkflowView />}
-            {activeView === 'video-lab' && <ReferenceVideoLabView />}
-            {activeView === 'projects' && <ProjectsView />}
-            {activeView === 'production-intelligence' && <ProductionIntelligenceView />}
-            {activeView === 'presets' && <PresetsView />}
-            {activeView === 'images' && <ImageLibraryView />}
-            {activeView === 'references' && <ReferenceLibraryView />}
-            {activeView === 'history' && <PromptHistoryView />}
-            {activeView === 'lessons' && <LessonsLearnedView />}
-            {activeView === 'settings' && <SettingsView />}
+            <ErrorBoundary fallbackTitle="Workspace View Error">
+              {activeView === 'create' && <CreateWorkspace />}
+              {activeView === 'recipes' && <RecipesView />}
+              {activeView === 'assistant' && <ProductionAssistantView />}
+              {activeView === 'workflow' && <ProductionWorkflowView />}
+              {activeView === 'video-lab' && <ReferenceVideoLabView />}
+              {activeView === 'projects' && <ProjectsView />}
+              {activeView === 'production-intelligence' && <ProductionIntelligenceView />}
+              {activeView === 'presets' && <PresetsView />}
+              {activeView === 'images' && <ImageLibraryView />}
+              {activeView === 'references' && <ReferenceLibraryView />}
+              {activeView === 'history' && <PromptHistoryView />}
+              {activeView === 'lessons' && <LessonsLearnedView />}
+              {activeView === 'settings' && <SettingsView />}
+            </ErrorBoundary>
           </main>
 
           {/* Right Live Summary Panel (Only active in 'create' view, toggleable) */}
