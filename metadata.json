@@ -1,0 +1,6 @@
+{
+  "name": "Ambience Intelligence Studio",
+  "description": "AI-assisted creative studio for designing atmospheric YouTube ambience videos with coordinated image, video animation, and music prompts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
