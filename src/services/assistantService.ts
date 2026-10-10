@@ -38,6 +38,10 @@ export interface AssistantQueryResponse {
   modelUsed?: string;
 }
 
+function getApiBaseUrl(): string {
+  return (import.meta.env.VITE_GEMINI_API_URL || '').replace(/\/$/, '');
+}
+
 export class AssistantService {
   /**
    * Main entry point to call backend Gemini Assistant route or fallback to local intelligence engine
@@ -106,7 +110,7 @@ export class AssistantService {
     };
 
     try {
-      const response = await fetch('/api/gemini/assistant', {
+      const response = await fetch(`${getApiBaseUrl()}/api/gemini/assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

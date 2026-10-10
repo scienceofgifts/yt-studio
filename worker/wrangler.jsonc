@@ -1,0 +1,9 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "ambience-intelligence-studio-api",
+  "main": "worker.ts",
+  "compatibility_date": "2024-03-20",
+  "vars": {
+    "NODE_VERSION": "20"
+  }
+}

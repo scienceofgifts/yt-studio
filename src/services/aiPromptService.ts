@@ -23,7 +23,12 @@ export interface GeneratedPromptsResult {
   modelUsed?: string;
 }
 
+function getApiBaseUrl(): string {
+  return (import.meta.env.VITE_GEMINI_API_URL || '').replace(/\/$/, '');
+}
+
 export class AiPromptService {
+
   /**
    * Builds structured project context object from current AmbienceConfig
    */
@@ -148,7 +153,7 @@ export class AiPromptService {
       referenceImage,
     };
 
-    const response = await fetch('/api/gemini/generate-prompt', {
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/generate-prompt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -193,7 +198,7 @@ export class AiPromptService {
     signal?: AbortSignal;
   }): Promise<ReferenceVideoLabItem> {
     const { url, model, customGoal, notes, signal } = options;
-    const response = await fetch('/api/gemini/analyze-video', {
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/analyze-video`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -243,7 +248,7 @@ export class AiPromptService {
     signal?: AbortSignal;
   }): Promise<any> {
     const { imageBase64, mimeType = 'image/jpeg', title = '', category = '', notes = '', model, signal } = options;
-    const response = await fetch('/api/gemini/analyze-reference', {
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/analyze-reference`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
