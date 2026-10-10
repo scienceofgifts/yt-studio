@@ -311,68 +311,194 @@ ${customInstructions ? `\nNOTES: "${customInstructions}"\n` : ''}`;
           return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
         }
         const body = (await request.json()) as any;
-        const { url: videoUrl = '', notes = '' } = body;
+        const { url: videoUrl = '', notes = '', customGoal = '', model: requestedModel } = body;
         const videoId = extractYouTubeVideoId(videoUrl);
         if (!videoId) {
           return Response.json({ success: false, error: 'Invalid YouTube URL.' }, { status: 400, headers: corsHeaders });
         }
 
         const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        let fetchedTitle = '';
+        let fetchedChannel = '';
+        let fetchedThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        try {
+          const oembedRes = await fetch(
+            `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
+          );
+          if (oembedRes.ok) {
+            const oembedData = (await oembedRes.json()) as any;
+            if (oembedData.title) fetchedTitle = oembedData.title;
+            if (oembedData.author_name) fetchedChannel = oembedData.author_name;
+            if (oembedData.thumbnail_url) fetchedThumbnail = oembedData.thumbnail_url;
+          }
+        } catch (e) {
+          // Ignore oembed errors
+        }
+
+        let thumbnailBase64 = '';
+        try {
+          const thumbRes = await fetch(fetchedThumbnail);
+          if (thumbRes.ok) {
+            const arrayBuffer = await thumbRes.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < uint8Array.byteLength; i++) {
+              binary += String.fromCharCode(uint8Array[i]);
+            }
+            thumbnailBase64 = btoa(binary);
+          }
+        } catch (e) {
+          // Ignore thumbnail fetch errors
+        }
+
+        const systemInstruction = `You are the Lead Cinematographer, Acoustic Director, and Generative AI Technical Producer for "Ambience Intelligence Studio".
+Conduct a reverse-engineering and multimodal deconstruction of a reference YouTube ambience video.
+Return ONLY a valid JSON object matching this schema:
+{
+  "title": "string",
+  "channelTitle": "string",
+  "matchConfidence": 95,
+  "tags": ["tag1", "tag2"],
+  "aesthetic": {
+    "worldArchetype": "string",
+    "locationType": "indoor",
+    "season": "autumn",
+    "timeOfDay": "night",
+    "weather": "rain",
+    "lighting": {
+      "primarySource": "string",
+      "colorTemperature": "string",
+      "intensity": "dim-cozy",
+      "volumetricRays": true,
+      "flickeringFlames": true,
+      "reflections": true
+    },
+    "colorPalette": [{"hex": "#D97706", "name": "Hearth Gold", "role": "Key Glow"}],
+    "materialsAndTextures": ["Wood", "Glass"],
+    "depthLayers": {"foreground": "string", "middleGround": "string", "background": "string"},
+    "composition": {"angle": "eye-level", "framing": "string"}
+  },
+  "kinematics": {
+    "cameraBehavior": "Locked Tripod",
+    "motionSubjects": ["Rain", "Embers"],
+    "motionPacing": "Ultra-Slow",
+    "loopCycleEstimateSeconds": 10,
+    "loopSeamHazards": ["Flame jump"],
+    "cinematicRules": ["Locked camera"]
+  },
+  "acoustics": {
+    "musicalStyle": "Ambient Piano",
+    "instrumentation": ["Felt Piano"],
+    "tempoBpmRange": "60 BPM",
+    "foleyLayers": [{"name": "Rain", "percentage": 50, "description": "Rainfall"}],
+    "keyMoods": ["Cozy"]
+  },
+  "blueprint": {
+    "directorVision": "string",
+    "translatedConfig": {"worldId": "wizarding-common-room", "season": "autumn", "timeOfDay": "night", "primaryWeather": "rain", "settingType": "indoor", "locationName": "Sanctuary"},
+    "imagePrompt": "string",
+    "videoPrompt": "string",
+    "musicPrompt": "string",
+    "productionChecklist": ["Generate image", "Animate loop", "Mix audio"],
+    "reusableLessons": [{"category": "Looping", "title": "Locked Camera", "observation": "Prevents tearing", "recommendation": "Lock tripod"}]
+  }
+}`;
+
+        const promptText = `ANALYZE REFERENCE YOUTUBE VIDEO FOR CREATIVE REPLICATION:
+URL: ${canonicalUrl}
+Video ID: ${videoId}
+${fetchedTitle ? `Known Video Title: "${fetchedTitle}"` : ''}
+${fetchedChannel ? `Channel: "${fetchedChannel}"` : ''}
+${notes ? `User Production Notes: "${notes}"` : ''}
+${customGoal ? `Director's Custom Replication Goal: "${customGoal}"` : ''}
+
+Please analyze this video's visual atmosphere, cinematic framing, motion physics, and acoustic layers in full depth. Formulate an original production blueprint and respond in the requested JSON format.`;
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            const contents: any[] = [];
+            if (thumbnailBase64) {
+              contents.push({
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: thumbnailBase64,
+                },
+              });
+            }
+            contents.push({
+              text: `${systemInstruction}\n\n${promptText}`,
+            });
+
+            response = await ai.models.generateContent({
+              model: modelCandidate,
+              contents,
+            });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (callErr: any) {
+            // Try next model candidate
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsed: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsed = JSON.parse(jsonMatch[1]);
+          else parsed = JSON.parse(responseText);
+        } catch {
+          parsed = {};
+        }
+
         const finalItem = {
           id: `vlab-${videoId}-${Date.now()}`,
           url: canonicalUrl,
           videoId,
-          title: `YouTube Ambience Benchmark (${videoId})`,
-          channelTitle: 'Ambient Channel',
-          thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-          duration: '2:00:00',
+          title: parsed.title || fetchedTitle || `YouTube Ambience Benchmark (${videoId})`,
+          channelTitle: parsed.channelTitle || fetchedChannel || 'Ambient Channel',
+          thumbnailUrl: fetchedThumbnail,
+          duration: parsed.duration || '2:00:00',
           analyzedAt: Date.now(),
           favorite: false,
           notes: notes || 'Analyzed via Reference Video Lab',
-          tags: ['YouTube Reference', 'Ambience Benchmark'],
-          matchConfidence: 95,
-          aesthetic: {
+          tags: Array.isArray(parsed.tags) && parsed.tags.length > 0 ? parsed.tags : ['YouTube Reference', 'Ambience Benchmark'],
+          matchConfidence: parsed.matchConfidence || 95,
+          aesthetic: parsed.aesthetic || {
             worldArchetype: 'Cozy Ambience Sanctuary',
             locationType: 'indoor',
             season: 'autumn',
             timeOfDay: 'night',
             weather: 'rain',
-            lighting: {
-              primarySource: 'Warm fireplace and cozy interior lamps',
-              colorTemperature: 'Warm Amber (2200K)',
-              intensity: 'dim-cozy',
-              volumetricRays: true,
-              flickeringFlames: true,
-              reflections: true,
-            },
-            colorPalette: [
-              { hex: '#D97706', name: 'Warm Amber Gold', role: 'Key Light' },
-              { hex: '#1E293B', name: 'Cobalt Night Storm', role: 'Window Sill' },
-            ],
-            materialsAndTextures: ['Carved dark timber', 'Rain-streaked glass'],
-            depthLayers: { foreground: 'Cozy study table', middleGround: 'Armchair by fireplace', background: 'Window' },
-            composition: { angle: 'eye-level', framing: 'Centrally anchored sanctuary' },
+            lighting: { primarySource: 'Warm fireplace', colorTemperature: 'Warm Amber 2200K', intensity: 'dim-cozy', volumetricRays: true, flickeringFlames: true, reflections: true },
+            colorPalette: [{ hex: '#D97706', name: 'Warm Amber Gold', role: 'Key Light' }],
+            materialsAndTextures: ['Timber', 'Glass'],
+            depthLayers: { foreground: 'Table', middleGround: 'Fireplace', background: 'Window' },
+            composition: { angle: 'eye-level', framing: 'Sanctuary' },
           },
-          kinematics: {
+          kinematics: parsed.kinematics || {
             cameraBehavior: 'Locked Tripod',
-            motionSubjects: ['Rain rivulets', 'Ember flicker'],
+            motionSubjects: ['Rain', 'Embers'],
             motionPacing: 'Ultra-Slow',
             loopCycleEstimateSeconds: 10,
-            loopSeamHazards: ['Flame discontinuity'],
-            cinematicRules: ['Locked camera on heavy tripod'],
+            loopSeamHazards: ['Flame flicker'],
+            cinematicRules: ['Locked camera'],
           },
-          acoustics: {
-            musicalStyle: 'Subtle Cinematic Felt Piano & Ambient Foley',
-            instrumentation: ['Warm felt piano', 'Legato cello'],
+          acoustics: parsed.acoustics || {
+            musicalStyle: 'Ambient Piano',
+            instrumentation: ['Felt Piano'],
             tempoBpmRange: '60 BPM',
-            foleyLayers: [
-              { name: 'Rain on Glass', percentage: 50, description: 'Rainfall' },
-              { name: 'Hearth Crackle', percentage: 50, description: 'Fireplace' },
-            ],
-            keyMoods: ['Warm Sanctuary', 'Deep Focus'],
+            foleyLayers: [{ name: 'Rain', percentage: 50, description: 'Rainfall' }],
+            keyMoods: ['Cozy'],
           },
-          blueprint: {
-            directorVision: 'Original Aesthetic Noise production blueprint.',
+          blueprint: parsed.blueprint || {
+            directorVision: 'Original production blueprint.',
             translatedConfig: { worldId: 'wizarding-common-room', season: 'autumn', timeOfDay: 'night', primaryWeather: 'rain', settingType: 'indoor', locationName: 'Sanctuary' },
             imagePrompt: 'Cinematic wide shot of atmospheric sanctuary interior during a nighttime rainstorm, fireplace, 8k resolution --ar 16:9',
             videoPrompt: 'Completely locked stationary camera on tripod. Gentle rain runs down glass windows, subtle fireplace embers flicker. Seamless loop.',
@@ -380,10 +506,10 @@ ${customInstructions ? `\nNOTES: "${customInstructions}"\n` : ''}`;
             productionChecklist: ['Generate image', 'Animate loop', 'Mix audio'],
             reusableLessons: [{ category: 'Looping', title: 'Locked Camera', observation: 'Prevents edge tearing', recommendation: 'Always lock tripod' }],
           },
-          modelUsed: { modelId: 'gemini-3.5-flash-lite', modelDisplayName: '3.5 Light', selectionSource: 'global' as const },
+          modelUsed: { modelId: usedModel, modelDisplayName: usedModel, selectionSource: 'global' as const },
         };
 
-        return Response.json({ success: true, modelUsed: 'gemini-3.5-flash-lite', data: finalItem }, { headers: corsHeaders });
+        return Response.json({ success: true, modelUsed: usedModel, data: finalItem }, { headers: corsHeaders });
       }
 
       // 6. Assistant Endpoint
