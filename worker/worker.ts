@@ -7,18 +7,16 @@ export interface Env {
 
 function resolveCandidateModels(requestedModel?: string): string[] {
   if (!requestedModel || requestedModel === 'inherit') {
-    return ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+    return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
   }
 
   const requested = requestedModel.trim();
   const candidates: string[] = [requested];
 
-  if (requested === 'gemini-3.5-flash-lite' || requested === 'gemini-flash-lite-latest') {
-    candidates.push('gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest');
-  } else if (requested.includes('pro')) {
-    candidates.push('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite');
+  if (requested.includes('pro')) {
+    candidates.push('gemini-2.5-pro', 'gemini-pro-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest');
   } else {
-    candidates.push('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite');
+    candidates.push('gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash');
   }
 
   return Array.from(new Set(candidates));
@@ -92,16 +90,14 @@ export default {
         return Response.json(
           {
             success: true,
-            defaultModel: 'gemini-3.5-flash-lite',
+            defaultModel: 'gemini-2.5-flash',
             models: [
-              { id: 'gemini-3.5-flash-lite', displayName: '3.5 Light', family: 'Flash Lite', default: true },
-              { id: 'gemini-3.5-flash', displayName: '3.5 Flash', family: 'Flash' },
-              { id: 'gemini-3.6-flash', displayName: '3.6 Flash', family: 'Flash' },
-              { id: 'gemini-3.7-flash', displayName: '3.7 Flash', family: 'Flash' },
-              { id: 'gemini-3.8-flash', displayName: '3.8 Flash', family: 'Flash' },
+              { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', family: 'Flash', default: true },
+              { id: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', family: 'Pro' },
+              { id: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', family: 'Flash' },
               { id: 'gemini-flash-latest', displayName: 'Flash Latest', family: 'Flash' },
-              { id: 'gemini-flash-lite-latest', displayName: 'Flash Lite Latest', family: 'Flash Lite' },
-              { id: 'gemini-3.1-pro-preview', displayName: '3.1 Pro (Preview)', family: 'Pro' },
+              { id: 'gemini-pro-latest', displayName: 'Pro Latest', family: 'Pro' },
+              { id: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash', family: 'Flash' },
             ],
           },
           { headers: corsHeaders }
