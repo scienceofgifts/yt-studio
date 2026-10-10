@@ -6,18 +6,28 @@ export interface Env {
 }
 
 function resolveCandidateModels(requestedModel?: string): string[] {
+  const modelAliasMap: Record<string, string> = {
+    'gemini-flash-latest-lite': 'gemini-flash-lite-latest',
+  };
+
+  const guaranteedFallbacks = [
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+  ];
+
   if (!requestedModel || requestedModel === 'inherit') {
-    return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
+    return guaranteedFallbacks;
   }
 
-  const requested = requestedModel.trim();
-  const candidates: string[] = [requested];
-
-  if (requested.includes('pro')) {
-    candidates.push('gemini-2.5-pro', 'gemini-pro-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest');
-  } else {
-    candidates.push('gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash');
-  }
+  const req = requestedModel.trim();
+  const mapped = modelAliasMap[req] || req;
+  const candidates: string[] = [mapped, req, ...guaranteedFallbacks];
 
   return Array.from(new Set(candidates));
 }
@@ -90,14 +100,16 @@ export default {
         return Response.json(
           {
             success: true,
-            defaultModel: 'gemini-2.5-flash',
+            defaultModel: 'gemini-3.8-flash',
             models: [
-              { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', family: 'Flash', default: true },
-              { id: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', family: 'Pro' },
-              { id: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', family: 'Flash' },
-              { id: 'gemini-flash-latest', displayName: 'Flash Latest', family: 'Flash' },
-              { id: 'gemini-pro-latest', displayName: 'Pro Latest', family: 'Pro' },
-              { id: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash', family: 'Flash' },
+              { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash', family: 'Flash', default: true },
+              { id: 'gemini-3.7-flash', displayName: 'Gemini 3.7 Flash', family: 'Flash' },
+              { id: 'gemini-3.6-flash', displayName: 'Gemini 3.6 Flash', family: 'Flash' },
+              { id: 'gemini-3.5-flash', displayName: 'Gemini 3.5 Flash', family: 'Flash' },
+              { id: 'gemini-3.5-flash-lite', displayName: 'Gemini 3.5 Flash Lite', family: 'Flash Lite' },
+              { id: 'gemini-flash-latest', displayName: 'Gemini Flash Latest', family: 'Flash' },
+              { id: 'gemini-flash-latest-lite', displayName: 'Gemini Flash Latest Lite', family: 'Flash Lite' },
+              { id: 'gemini-3.1-flash-lite', displayName: 'Gemini 3.1 Flash Lite', family: 'Flash Lite' },
             ],
           },
           { headers: corsHeaders }

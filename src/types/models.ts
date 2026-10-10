@@ -1,8 +1,11 @@
 export type AiModelId =
-  | 'gemini-3.5-flash-lite'
   | 'gemini-3.8-flash'
+  | 'gemini-3.7-flash'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.5-flash'
+  | 'gemini-3.5-flash-lite'
   | 'gemini-flash-latest'
-  | 'gemini-3.1-pro-preview'
+  | 'gemini-flash-latest-lite'
   | 'gemini-3.1-flash-lite';
 
 export type StudioTaskType =
@@ -26,7 +29,7 @@ export interface ModelCapabilityMatrix {
 export interface ModelDefinition {
   id: AiModelId;
   displayName: string;
-  family: 'Flash Lite' | 'Flash' | 'Pro';
+  family: 'Flash Lite' | 'Flash';
   shortDescription: string;
   detailedNotes: string;
   capabilities: ModelCapabilityMatrix;

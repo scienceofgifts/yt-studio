@@ -38,18 +38,28 @@ app.get('/api/health', (req, res) => {
  * Resolves candidate models for resilient fallback execution
  */
 function resolveCandidateModels(requestedModel?: string): string[] {
+  const modelAliasMap: Record<string, string> = {
+    'gemini-flash-latest-lite': 'gemini-flash-lite-latest',
+  };
+
+  const guaranteedFallbacks = [
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+  ];
+
   if (!requestedModel || requestedModel === 'inherit') {
-    return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
+    return guaranteedFallbacks;
   }
 
-  const requested = requestedModel.trim();
-  const candidates: string[] = [requested];
-
-  if (requested.includes('pro')) {
-    candidates.push('gemini-2.5-pro', 'gemini-pro-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest');
-  } else {
-    candidates.push('gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash');
-  }
+  const req = requestedModel.trim();
+  const mapped = modelAliasMap[req] || req;
+  const candidates: string[] = [mapped, req, ...guaranteedFallbacks];
 
   return Array.from(new Set(candidates));
 }
@@ -60,14 +70,16 @@ function resolveCandidateModels(requestedModel?: string): string[] {
 app.get('/api/gemini/models', (req, res) => {
   res.json({
     success: true,
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.8-flash',
     models: [
-      { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', family: 'Flash', default: true },
-      { id: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', family: 'Pro' },
-      { id: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', family: 'Flash' },
-      { id: 'gemini-flash-latest', displayName: 'Flash Latest', family: 'Flash' },
-      { id: 'gemini-pro-latest', displayName: 'Pro Latest', family: 'Pro' },
-      { id: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash', family: 'Flash' },
+      { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash', family: 'Flash', default: true },
+      { id: 'gemini-3.7-flash', displayName: 'Gemini 3.7 Flash', family: 'Flash' },
+      { id: 'gemini-3.6-flash', displayName: 'Gemini 3.6 Flash', family: 'Flash' },
+      { id: 'gemini-3.5-flash', displayName: 'Gemini 3.5 Flash', family: 'Flash' },
+      { id: 'gemini-3.5-flash-lite', displayName: 'Gemini 3.5 Flash Lite', family: 'Flash Lite' },
+      { id: 'gemini-flash-latest', displayName: 'Gemini Flash Latest', family: 'Flash' },
+      { id: 'gemini-flash-latest-lite', displayName: 'Gemini Flash Latest Lite', family: 'Flash Lite' },
+      { id: 'gemini-3.1-flash-lite', displayName: 'Gemini 3.1 Flash Lite', family: 'Flash Lite' },
     ],
   });
 });
@@ -624,74 +636,44 @@ Please analyze this video's visual atmosphere, cinematic framing, motion physics
     let lastError: any = null;
     let usedModel = candidateModels[0];
 
-    // First attempt: try direct fileData with YouTube URL
+    // Fetch thumbnail image and analyze with rich metadata and thumbnail inline data
+    let thumbnailBase64 = '';
+    try {
+      const thumbRes = await fetch(fetchedThumbnail, { signal: AbortSignal.timeout(4000) });
+      if (thumbRes.ok) {
+        const arrayBuffer = await thumbRes.arrayBuffer();
+        thumbnailBase64 = Buffer.from(arrayBuffer).toString('base64');
+      }
+    } catch (thumbErr) {
+      console.warn('Could not fetch thumbnail buffer:', thumbErr);
+    }
+
     for (const modelCandidate of candidateModels) {
       try {
+        const contents: any[] = [];
+        if (thumbnailBase64) {
+          contents.push({
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: thumbnailBase64,
+            },
+          });
+        }
+        contents.push({
+          text: `${systemInstruction}\n\n${promptText}\n\n(Note: Reference video benchmark thumbnail image and verified YouTube metadata provided above.)`,
+        });
+
         response = await ai.models.generateContent({
           model: modelCandidate,
-          contents: [
-            {
-              fileData: {
-                fileUri: canonicalUrl,
-                mimeType: 'video/mp4',
-              },
-            },
-            {
-              text: `${systemInstruction}\n\n${promptText}`,
-            },
-          ],
+          contents,
         });
         if (response && response.text) {
           usedModel = modelCandidate;
           break;
         }
-      } catch (callErr: any) {
-        lastError = callErr;
-        console.warn(`Direct video fileUri attempt on ${modelCandidate} failed:`, callErr.message || callErr);
-      }
-    }
-
-    // Secondary fallback: if direct video download was restricted by YouTube or model, fetch thumbnail image and analyze with rich metadata
-    if (!response || !response.text) {
-      console.log('Falling back to thumbnail image and metadata multimodal analysis...');
-      let thumbnailBase64 = '';
-      try {
-        const thumbRes = await fetch(fetchedThumbnail, { signal: AbortSignal.timeout(4000) });
-        if (thumbRes.ok) {
-          const arrayBuffer = await thumbRes.arrayBuffer();
-          thumbnailBase64 = Buffer.from(arrayBuffer).toString('base64');
-        }
-      } catch (thumbErr) {
-        console.warn('Could not fetch thumbnail buffer:', thumbErr);
-      }
-
-      for (const modelCandidate of candidateModels) {
-        try {
-          const contents: any[] = [];
-          if (thumbnailBase64) {
-            contents.push({
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: thumbnailBase64,
-              },
-            });
-          }
-          contents.push({
-            text: `${systemInstruction}\n\n${promptText}\n\n(Note: Reference video benchmark thumbnail image and verified YouTube metadata provided above.)`,
-          });
-
-          response = await ai.models.generateContent({
-            model: modelCandidate,
-            contents,
-          });
-          if (response && response.text) {
-            usedModel = modelCandidate;
-            break;
-          }
-        } catch (fbErr: any) {
-          lastError = fbErr;
-          console.warn(`Fallback on ${modelCandidate} failed:`, fbErr.message || fbErr);
-        }
+      } catch (fbErr: any) {
+        lastError = fbErr;
+        console.warn(`Analysis on ${modelCandidate} failed:`, fbErr.message || fbErr);
       }
     }
 

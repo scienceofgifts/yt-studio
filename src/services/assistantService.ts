@@ -39,7 +39,11 @@ export interface AssistantQueryResponse {
 }
 
 function getApiBaseUrl(): string {
-  return (import.meta.env.VITE_GEMINI_API_URL || '').replace(/\/$/, '');
+  const envUrl = (import.meta.env.VITE_GEMINI_API_URL || '').trim();
+  if (envUrl.startsWith('http://') || envUrl.startsWith('https://')) {
+    return envUrl.replace(/\/$/, '');
+  }
+  return '';
 }
 
 export class AssistantService {

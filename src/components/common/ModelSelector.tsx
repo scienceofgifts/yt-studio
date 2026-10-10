@@ -447,16 +447,16 @@ export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = ({ classN
                     </div>
 
                     <div className="pt-2 border-t border-[#1E2B3E] flex items-center justify-between text-[11px] text-[#A1AEC0]">
-                      <span>Default for new installations: <strong>3.5 Light</strong></span>
+                      <span>Default for new installations: <strong>Gemini 3.8 Flash</strong></span>
                       <button
                         type="button"
                         onClick={() => {
-                          setGlobalModel('gemini-3.5-flash-lite');
-                          setInspectedModelId('gemini-3.5-flash-lite');
+                          setGlobalModel('gemini-3.8-flash');
+                          setInspectedModelId('gemini-3.8-flash');
                         }}
                         className="text-[#E8AE62] hover:underline text-[10px] font-medium"
                       >
-                        Reset to 3.5 Light
+                        Reset to Gemini 3.8 Flash
                       </button>
                     </div>
                   </div>

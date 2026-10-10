@@ -1,13 +1,12 @@
 export type SupportedGeminiModelId =
-  | 'gemini-3.5-flash-lite'
-  | 'gemini-3.5-flash'
-  | 'gemini-3.6-flash'
-  | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-3.7-flash'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.5-flash'
+  | 'gemini-3.5-flash-lite'
   | 'gemini-flash-latest'
-  | 'gemini-flash-lite-latest'
-  | 'gemini-3.1-flash-lite'
-  | 'gemini-3.1-pro-preview';
+  | 'gemini-flash-latest-lite'
+  | 'gemini-3.1-flash-lite';
 
 export type StudioTaskType =
   | 'video-analysis'
@@ -26,18 +25,18 @@ export interface TaskDefinition {
   description: string;
   category: 'perception' | 'prompting' | 'intelligence';
   iconName: string;
-  recommendedFamily: 'Flash Lite' | 'Flash' | 'Pro';
+  recommendedFamily: 'Flash Lite' | 'Flash';
 }
 
 export interface ModelCapabilityInfo {
   id: SupportedGeminiModelId;
   displayName: string;
-  family: 'Flash Lite' | 'Flash' | 'Pro';
+  family: 'Flash Lite' | 'Flash';
   generation: string;
   tagline: string;
   description: string;
   contextWindow: string;
-  status: 'verified' | 'preview';
+  status: 'verified';
   isDefault?: boolean;
   capabilities: {
     text: boolean;
@@ -52,7 +51,7 @@ export interface ModelCapabilityInfo {
 
 export interface TaskModelConfig {
   globalModelId: SupportedGeminiModelId;
-  taskOverrides: Partial<Record<StudioTaskType, SupportedGeminiModelId>>;
+  taskOverrides: Partial<Record<StudioTaskType, SupportedGeminiModelId | 'inherit'>>;
 }
 
 export interface ModelExecutionMetadata {
@@ -66,396 +65,209 @@ export interface ModelExecutionMetadata {
 
 export const VERIFIED_MODELS_LIST: ModelCapabilityInfo[] = [
   {
-    id: 'gemini-3.5-flash-lite',
-    displayName: '3.5 Light',
-    family: 'Flash Lite',
-    generation: 'Gemini 3.5',
-    isDefault: true,
-    tagline: 'Default Studio Model — Ultra-Fast, Cost-Efficient Multimodal Engine',
-    description:
-      'Optimized for rapid prompt iteration, reference deconstruction, and low-latency studio workflow. Verified for text, vision, and structured JSON.',
-    contextWindow: '1M tokens',
-    status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Everyday prompt generation', 'Quick scene refinements', 'Responsive reference tags'],
-  },
-  {
-    id: 'gemini-3.5-flash',
-    displayName: '3.5 Flash',
-    family: 'Flash',
-    generation: 'Gemini 3.5',
-    tagline: 'Balanced Speed & Multimodal Depth',
-    description:
-      'High-throughput multimodal Flash model with enhanced spatial understanding and balanced kinematic prompt formatting.',
-    contextWindow: '1M tokens',
-    status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Reference image analysis', 'Audio foley coordination', 'YouTube video deconstructions'],
-  },
-  {
-    id: 'gemini-3.6-flash',
-    displayName: '3.6 Flash',
-    family: 'Flash',
-    generation: 'Gemini 3.6',
-    tagline: 'Enhanced Visual Hierarchy & Kinematic Physics',
-    description:
-      'Intermediate 3.6 generation featuring refined video physics understanding and sharper prompt separation.',
-    contextWindow: '1M tokens',
-    status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Video animation constraints', 'Loop seam hazard identification'],
-  },
-  {
-    id: 'gemini-3.7-flash',
-    displayName: '3.7 Flash',
-    family: 'Flash',
-    generation: 'Gemini 3.7',
-    tagline: 'Advanced Reasoning & Three-Plane Depth Perception',
-    description:
-      'Next-generation Flash architecture with heightened aesthetic deconstruction and architectural composition precision.',
-    contextWindow: '1M tokens',
-    status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Complex lighting temperature analysis', 'Atmospheric physics prompts'],
-  },
-  {
     id: 'gemini-3.8-flash',
-    displayName: '3.8 Flash',
+    displayName: 'Gemini 3.8 Flash',
     family: 'Flash',
     generation: 'Gemini 3.8',
+    isDefault: true,
     tagline: 'Flagship Flash Intelligence — Deep Multimodal Synthesis',
-    description:
-      'Top-tier Flash model combining rapid execution with comprehensive multimodal reasoning, acoustic deconstruction, and creative blueprinting.',
+    description: 'Top-tier Flash model combining rapid execution with comprehensive multimodal reasoning, acoustic deconstruction, and creative blueprinting.',
     contextWindow: '1M tokens',
     status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: true, structuredJson: true },
+    supportedTasks: ['video-analysis', 'reference-analysis', 'image-prompt', 'video-prompt', 'music-prompt', 'lesson-extraction', 'production-analysis', 'assistant'],
     bestFor: ['Full YouTube Video Lab reverse-engineering', 'Creative Replication Blueprints', 'Cross-stage production intelligence'],
   },
   {
+    id: 'gemini-3.7-flash',
+    displayName: 'Gemini 3.7 Flash',
+    family: 'Flash',
+    generation: 'Gemini 3.7',
+    tagline: 'Advanced Flash Intelligence with Balanced Latency',
+    description: 'Optimized Flash model for robust creative prompt composition and video layering.',
+    contextWindow: '1M tokens',
+    status: 'verified',
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: true, structuredJson: true },
+    supportedTasks: ['video-analysis', 'reference-analysis', 'image-prompt', 'video-prompt', 'music-prompt', 'lesson-extraction', 'production-analysis', 'assistant'],
+    bestFor: ['Detailed scene decomposition', 'Balanced speed and reasoning'],
+  },
+  {
+    id: 'gemini-3.6-flash',
+    displayName: 'Gemini 3.6 Flash',
+    family: 'Flash',
+    generation: 'Gemini 3.6',
+    tagline: 'High-Performance Cinematic Flash',
+    description: 'Reliable checkpoint tuned for consistent multi-layer storytelling and asset parsing.',
+    contextWindow: '1M tokens',
+    status: 'verified',
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: false, structuredJson: true },
+    supportedTasks: ['reference-analysis', 'image-prompt', 'video-prompt', 'music-prompt', 'assistant'],
+    bestFor: ['Prompt drafting', 'Reference image parsing'],
+  },
+  {
+    id: 'gemini-3.5-flash',
+    displayName: 'Gemini 3.5 Flash',
+    family: 'Flash',
+    generation: 'Gemini 3.5',
+    tagline: 'Robust Production Flash Checkpoint',
+    description: 'Well-tested production model for general creative work and ambience composition.',
+    contextWindow: '1M tokens',
+    status: 'verified',
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: false, structuredJson: true },
+    supportedTasks: ['reference-analysis', 'image-prompt', 'video-prompt', 'music-prompt', 'assistant'],
+    bestFor: ['General ambience generation', 'Audio & music prompts'],
+  },
+  {
+    id: 'gemini-3.5-flash-lite',
+    displayName: 'Gemini 3.5 Flash Lite',
+    family: 'Flash Lite',
+    generation: 'Gemini 3.5',
+    tagline: 'Ultra-Fast Lightweight Flash Lite',
+    description: 'Engineered for maximum responsiveness and quick text drafting.',
+    contextWindow: '1M tokens',
+    status: 'verified',
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: false, structuredJson: true },
+    supportedTasks: ['image-prompt', 'video-prompt', 'music-prompt', 'assistant'],
+    bestFor: ['Rapid prompt iterations', 'Lightweight text formatting'],
+  },
+  {
     id: 'gemini-flash-latest',
-    displayName: 'Flash Latest',
+    displayName: 'Gemini Flash Latest',
     family: 'Flash',
     generation: 'Continuous',
     tagline: 'Auto-Updated Flash Alias',
-    description:
-      'Points automatically to the latest stable deployment of the Gemini Flash engine for guaranteed up-to-date performance.',
+    description: 'Points automatically to the latest stable deployment of the Gemini Flash engine for guaranteed up-to-date performance.',
     contextWindow: '1M tokens',
     status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: true, structuredJson: true },
+    supportedTasks: ['video-analysis', 'reference-analysis', 'image-prompt', 'video-prompt', 'music-prompt', 'lesson-extraction', 'production-analysis', 'assistant'],
     bestFor: ['Continuous updates', 'General studio operations'],
   },
   {
-    id: 'gemini-flash-lite-latest',
-    displayName: 'Flash Lite Latest',
+    id: 'gemini-flash-latest-lite',
+    displayName: 'Gemini Flash Latest Lite',
     family: 'Flash Lite',
     generation: 'Continuous',
-    tagline: 'Auto-Updated Lite Alias',
-    description:
-      'Points automatically to the latest lightweight Flash Lite build for high-efficiency throughput.',
+    tagline: 'Auto-Updated Flash Lite Alias',
+    description: 'Points automatically to the latest lightweight Flash production checkpoint.',
     contextWindow: '1M tokens',
     status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Rapid draft recompilation', 'Quick experiments'],
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: false, audioPerception: false, structuredJson: true },
+    supportedTasks: ['image-prompt', 'video-prompt', 'assistant'],
+    bestFor: ['Fast lightweight drafting'],
   },
   {
     id: 'gemini-3.1-flash-lite',
-    displayName: '3.1 Light',
+    displayName: 'Gemini 3.1 Flash Lite',
     family: 'Flash Lite',
     generation: 'Gemini 3.1',
     tagline: 'Ultra-Lightweight Baseline',
-    description:
-      'Compact Gemini 3.1 Flash Lite model for baseline text structuring and swift prompt drafting.',
+    description: 'Compact Gemini 3.1 Flash Lite model for baseline text structuring and swift prompt drafting.',
     contextWindow: '1M tokens',
     status: 'verified',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: false,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-    ],
+    capabilities: { text: true, imageAnalysis: true, videoAnalysis: true, audioPerception: false, structuredJson: true },
+    supportedTasks: ['image-prompt', 'video-prompt', 'music-prompt', 'lesson-extraction', 'assistant'],
     bestFor: ['Text-only prompt compilation', 'Simple lesson tags'],
-  },
-  {
-    id: 'gemini-3.1-pro-preview',
-    displayName: '3.1 Pro (Preview)',
-    family: 'Pro',
-    generation: 'Gemini 3.1',
-    tagline: 'Advanced Complex STEM & Creative Reasoning',
-    description:
-      'Deep reasoning model for intricate prompt architectural coordination, multi-variable conflict resolution, and statistical analytics.',
-    contextWindow: '2M tokens',
-    status: 'preview',
-    capabilities: {
-      text: true,
-      imageAnalysis: true,
-      videoAnalysis: true,
-      audioPerception: true,
-      structuredJson: true,
-    },
-    supportedTasks: [
-      'video-analysis',
-      'reference-analysis',
-      'image-prompt',
-      'video-prompt',
-      'music-prompt',
-      'lesson-extraction',
-      'production-analysis',
-    ],
-    bestFor: ['Complex correlation matrix in Production Intelligence', 'Deep lesson synthesis'],
   },
 ];
 
 export const STUDIO_TASKS: TaskDefinition[] = [
   {
     id: 'video-analysis',
-    label: 'YouTube Video Lab',
+    label: 'YouTube Video Analysis',
     shortLabel: 'Video Lab',
-    description: 'Reverse-engineers public YouTube ambience videos into original production blueprints.',
+    description: 'Reverse-engineers reference YouTube ambience videos into structural layers.',
     category: 'perception',
-    iconName: 'Youtube',
+    iconName: 'video',
     recommendedFamily: 'Flash',
   },
   {
     id: 'reference-analysis',
     label: 'Reference Image Analysis',
-    shortLabel: 'Image Analysis',
-    description: 'Extracts 3-plane depth, lighting Kelvin, and materials from uploaded reference art.',
+    shortLabel: 'Reference Stills',
+    description: 'Deconstructs uploaded still images into palette and lighting parameters.',
     category: 'perception',
-    iconName: 'Image',
+    iconName: 'image',
     recommendedFamily: 'Flash',
   },
   {
     id: 'image-prompt',
     label: 'Image Prompt Generation',
-    shortLabel: 'Image Prompt',
-    description: 'Generates Midjourney v6.1 and Flux.1 Pro production aesthetic prompts.',
+    shortLabel: 'Midjourney/Flux',
+    description: 'Compiles cinematic master image prompts.',
     category: 'prompting',
-    iconName: 'Camera',
+    iconName: 'sparkles',
     recommendedFamily: 'Flash Lite',
   },
   {
     id: 'video-prompt',
-    label: 'Video Animation Prompts',
-    shortLabel: 'Video Prompt',
-    description: 'Drafts kinematic motion vectors, locked camera rules, and loop seam constraints.',
+    label: 'Animation Prompt Generation',
+    shortLabel: 'Video Animation',
+    description: 'Synthesizes camera lock and micro-motion physics constraints.',
     category: 'prompting',
-    iconName: 'Film',
-    recommendedFamily: 'Flash',
+    iconName: 'film',
+    recommendedFamily: 'Flash Lite',
   },
   {
     id: 'music-prompt',
-    label: 'Music & Foley Prompts',
-    shortLabel: 'Audio Foley',
-    description: 'Coordinates layered acoustic foley mixes, tempo BPM, and ear-fatigue curves.',
+    label: 'Music & Foley Prompt Generation',
+    shortLabel: 'Soundscape',
+    description: 'Composes musical orchestration and environmental foley prompts.',
     category: 'prompting',
-    iconName: 'Music',
-    recommendedFamily: 'Flash Lite',
+    iconName: 'music',
+    recommendedFamily: 'Flash',
   },
   {
     id: 'lesson-extraction',
-    label: 'Experience Memory Lessons',
+    label: 'Experience Memory Lesson Extraction',
     shortLabel: 'Lessons',
-    description: 'Extracts reusable production rules and failure fixes from project outcomes.',
+    description: 'Extracts production rules from completed projects.',
     category: 'intelligence',
-    iconName: 'Lightbulb',
-    recommendedFamily: 'Flash Lite',
+    iconName: 'brain',
+    recommendedFamily: 'Flash',
   },
   {
     id: 'production-analysis',
-    label: 'Production Intelligence',
+    label: 'Production Analysis & Recommendations',
     shortLabel: 'Analytics',
-    description: 'Analyzes channel retention correlations and generates strategic studio recommendations.',
+    description: 'Evaluates catalog metrics and viewer retention data.',
     category: 'intelligence',
-    iconName: 'BarChart3',
+    iconName: 'trending-up',
     recommendedFamily: 'Flash',
   },
   {
     id: 'assistant',
-    label: 'Production Assistant',
+    label: 'Production Assistant Chat',
     shortLabel: 'Assistant',
-    description: 'Contextual AI engineer to diagnose problems, improve prompts, and optimize productions.',
+    description: 'Conversational copilot for ambient studio workflows.',
     category: 'intelligence',
-    iconName: 'Bot',
+    iconName: 'message-square',
     recommendedFamily: 'Flash',
   },
 ];
 
-export const DEFAULT_MODEL_ID: SupportedGeminiModelId = 'gemini-3.5-flash-lite';
+export const STUDIO_TASKS_REGISTRY = STUDIO_TASKS;
 
 export const DEFAULT_TASK_MODEL_CONFIG: TaskModelConfig = {
-  globalModelId: DEFAULT_MODEL_ID,
+  globalModelId: 'gemini-3.8-flash',
   taskOverrides: {},
 };
 
 export function getModelInfo(modelId: string): ModelCapabilityInfo {
-  const found = VERIFIED_MODELS_LIST.find((m) => m.id === modelId);
-  return (
-    found || {
-      id: DEFAULT_MODEL_ID,
-      displayName: '3.5 Light',
-      family: 'Flash Lite',
-      generation: 'Gemini 3.5',
-      isDefault: true,
-      tagline: 'Default Studio Model',
-      description: 'Standard studio model.',
-      contextWindow: '1M tokens',
-      status: 'verified',
-      capabilities: {
-        text: true,
-        imageAnalysis: true,
-        videoAnalysis: true,
-        audioPerception: true,
-        structuredJson: true,
-      },
-      supportedTasks: [
-        'video-analysis',
-        'reference-analysis',
-        'image-prompt',
-        'video-prompt',
-        'music-prompt',
-        'lesson-extraction',
-        'production-analysis',
-      ],
-      bestFor: ['Studio operations'],
-    }
-  );
-}
-
-export function getDisplayName(modelId: string): string {
-  const info = getModelInfo(modelId);
-  return info.displayName;
+  return VERIFIED_MODELS_LIST.find((m) => m.id === modelId) || VERIFIED_MODELS_LIST[0];
 }
 
 export function resolveModelForTask(
   config: TaskModelConfig,
-  taskType: StudioTaskType
-): {
-  modelId: SupportedGeminiModelId;
-  displayName: string;
-  isOverride: boolean;
-  modelInfo: ModelCapabilityInfo;
-} {
-  const override = config.taskOverrides[taskType];
-  const isOverride = Boolean(override && override !== config.globalModelId);
-  const activeModelId = override || config.globalModelId || DEFAULT_MODEL_ID;
-  const modelInfo = getModelInfo(activeModelId);
-
+  taskId: StudioTaskType
+): { modelId: SupportedGeminiModelId; displayName: string; isOverride: boolean; modelInfo: ModelCapabilityInfo } {
+  const override = config.taskOverrides[taskId];
+  const activeId = override && override !== 'inherit' ? override : config.globalModelId;
+  const modelInfo = getModelInfo(activeId);
   return {
-    modelId: activeModelId,
+    modelId: modelInfo.id,
     displayName: modelInfo.displayName,
-    isOverride,
+    isOverride: Boolean(override && override !== 'inherit'),
     modelInfo,
   };
 }
