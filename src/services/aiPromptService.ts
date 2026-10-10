@@ -282,4 +282,367 @@ export class AiPromptService {
       modelUsed: json.modelUsed,
     };
   }
+
+  /**
+   * Phase 1: Generates a detailed Quick Image Prompt from a reference image or idea
+   */
+  public static async generateQuickImagePrompt(
+    options: QuickImagePromptRequestOptions
+  ): Promise<QuickImagePromptResult> {
+    const { mode, referenceImage, userInstructions, idea, aspectRatio = '16:9', model, signal } = options;
+
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/quick-image-prompt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ mode, referenceImage, userInstructions, idea, aspectRatio, model }),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) errorMessage = errorData.error;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const json = await response.json();
+    if (!json.success || !json.data) {
+      throw new Error(json.error || 'Failed to generate quick image prompt.');
+    }
+
+    return {
+      prompt: json.data.prompt || '',
+      reasoning: json.data.reasoning || '',
+      visibleDetails: json.data.visibleDetails || [],
+      inferredDetails: json.data.inferredDetails || [],
+      modelUsed: json.modelUsed,
+    };
+  }
+
+  /**
+   * Phase 1: Generates N controlled image prompt variations (Subtle, Balanced, Bold)
+   */
+  public static async generateQuickPromptVariations(
+    options: QuickPromptVariationsRequestOptions
+  ): Promise<QuickPromptVariationsResult> {
+    const { basePrompt, variationLevel = 'balanced', count = 4, userInstructions, model, signal } = options;
+
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/quick-prompt-variations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ basePrompt, variationLevel, count, userInstructions, model }),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) errorMessage = errorData.error;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const json = await response.json();
+    if (!json.success || !Array.isArray(json.variations)) {
+      throw new Error(json.error || 'Failed to generate prompt variations.');
+    }
+
+    return {
+      variations: json.variations,
+      modelUsed: json.modelUsed,
+    };
+  }
+
+  /**
+   * Phase 2: Generates N intelligent creative ideas based on topic and creative controls
+   */
+  public static async generateIdeas(
+    options: GenerateIdeasRequestOptions
+  ): Promise<GenerateIdeasResult> {
+    const {
+      topic,
+      creativeObjective = 'Generate ambience video concepts',
+      additionalInstructions = '',
+      count = 10,
+      creativeDirection = 'A balanced mixture',
+      originality = 'Fresh and unexpected',
+      productionComplexity = 'Moderate',
+      previousIdeas = [],
+      feedbackDirective = '',
+      referenceIdea,
+      model,
+      signal,
+    } = options;
+
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/generate-ideas`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        topic,
+        creativeObjective,
+        additionalInstructions,
+        count,
+        creativeDirection,
+        originality,
+        productionComplexity,
+        previousIdeas,
+        feedbackDirective,
+        referenceIdea,
+        model,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) errorMessage = errorData.error;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const json = await response.json();
+    if (!json.success || !Array.isArray(json.ideas)) {
+      throw new Error(json.error || 'Failed to generate creative ideas.');
+    }
+
+    return {
+      ideas: json.ideas,
+      modelUsed: json.modelUsed,
+    };
+  }
+
+  /**
+   * Phase 2: Develops a single idea card into a full production blueprint
+   */
+  public static async developIdea(options: {
+    idea: IdeaCardItem;
+    model?: string;
+    signal?: AbortSignal;
+  }): Promise<DevelopIdeaResult> {
+    const { idea, model, signal } = options;
+
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/develop-idea`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idea, model }),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) errorMessage = errorData.error;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const json = await response.json();
+    if (!json.success || !json.developedBlueprint) {
+      throw new Error(json.error || 'Failed to develop idea blueprint.');
+    }
+
+    return {
+      developedBlueprint: json.developedBlueprint,
+      modelUsed: json.modelUsed,
+    };
+  }
+
+  /**
+   * Phase 3: Transforms reference video and creative interpretation into opening image and video motion prompts
+   */
+  public static async generateRefToProductionPrompts(
+    options: RefToProductionRequestOptions
+  ): Promise<RefToProductionResult> {
+    const { target = 'both', referenceData, creativeInterpretation, existingImagePrompt, model, signal } = options;
+
+    const response = await fetch(`${getApiBaseUrl()}/api/gemini/reference-to-production`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ target, referenceData, creativeInterpretation, existingImagePrompt, model }),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Server error (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) errorMessage = errorData.error;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const json = await response.json();
+    if (!json.success || !json.data) {
+      throw new Error(json.error || 'Failed to generate reference-to-production prompts.');
+    }
+
+    return {
+      openingImagePrompt: json.data.openingImagePrompt || '',
+      videoMotionPrompt: json.data.videoMotionPrompt || '',
+      reasoning: json.data.reasoning || '',
+      modelUsed: json.modelUsed,
+    };
+  }
 }
+
+export interface RefToProductionRequestOptions {
+  target?: 'image' | 'video' | 'both';
+  referenceData?: {
+    title?: string;
+    url?: string;
+    aesthetic?: any;
+    kinematics?: any;
+    acoustics?: any;
+    blueprint?: any;
+    notes?: string;
+  };
+  creativeInterpretation: {
+    subject: string;
+    setting?: string;
+    visualStyle?: string;
+    mood?: string;
+    preserveQualities?: string[];
+    changeQualities?: string;
+    additionalInstructions?: string;
+  };
+  existingImagePrompt?: string;
+  model?: string;
+  signal?: AbortSignal;
+}
+
+export interface RefToProductionResult {
+  openingImagePrompt: string;
+  videoMotionPrompt: string;
+  reasoning: string;
+  modelUsed?: string;
+}
+
+export interface QuickImagePromptRequestOptions {
+  mode: 'reference' | 'idea';
+  referenceImage?: {
+    id?: string;
+    title?: string;
+    imageUrl?: string;
+    imageBase64?: string;
+    mimeType?: string;
+    notes?: string;
+    analysis?: any;
+  };
+  userInstructions?: string;
+  idea?: {
+    subject: string;
+    setting?: string;
+    mood?: string;
+    constraints?: string;
+  };
+  aspectRatio?: string;
+  model?: string;
+  signal?: AbortSignal;
+}
+
+export interface QuickImagePromptResult {
+  prompt: string;
+  reasoning: string;
+  visibleDetails?: string[];
+  inferredDetails?: string[];
+  modelUsed?: string;
+}
+
+export interface PromptVariationItem {
+  id: string;
+  title: string;
+  angleSummary: string;
+  prompt: string;
+}
+
+export interface QuickPromptVariationsRequestOptions {
+  basePrompt: string;
+  variationLevel?: 'subtle' | 'balanced' | 'bold';
+  count?: number;
+  userInstructions?: string;
+  model?: string;
+  signal?: AbortSignal;
+}
+
+export interface QuickPromptVariationsResult {
+  variations: PromptVariationItem[];
+  modelUsed?: string;
+}
+
+export interface IdeaCardItem {
+  id: string;
+  title: string;
+  coreConcept: string;
+  visualHook: string;
+  settingAndAtmosphere: string;
+  whyItWorks: string;
+  productionApproach: string;
+  suggestedSubject?: string;
+  suggestedSetting?: string;
+  suggestedMood?: string;
+  suggestedConstraints?: string;
+  isFavorite?: boolean;
+  isRejected?: boolean;
+}
+
+export interface DevelopedIdeaBlueprint {
+  title: string;
+  expandedVision: string;
+  spatialLayout: string;
+  lightingDynamics: string;
+  soundscapeArchitecture: string;
+  motionAndLooping: string;
+  recommendedPromptDraft: string;
+}
+
+export interface GenerateIdeasRequestOptions {
+  topic: string;
+  creativeObjective?: string;
+  additionalInstructions?: string;
+  count?: number;
+  creativeDirection?: string;
+  originality?: string;
+  productionComplexity?: string;
+  previousIdeas?: string[];
+  feedbackDirective?: string;
+  referenceIdea?: IdeaCardItem;
+  model?: string;
+  signal?: AbortSignal;
+}
+
+export interface GenerateIdeasResult {
+  ideas: IdeaCardItem[];
+  modelUsed?: string;
+}
+
+export interface DevelopIdeaResult {
+  developedBlueprint: DevelopedIdeaBlueprint;
+  modelUsed?: string;
+}
+

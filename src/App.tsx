@@ -10,6 +10,9 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LiveSummaryPanel } from './components/layout/LiveSummaryPanel';
 import { CreateWorkspace } from './components/workspace/CreateWorkspace';
+import { QuickImagePromptStudioView } from './components/views/QuickImagePromptStudioView';
+import { IdeaGeneratorView } from './components/views/IdeaGeneratorView';
+import { ReferenceToProductionView } from './components/views/ReferenceToProductionView';
 import { ProjectsView } from './components/views/ProjectsView';
 import { PresetsView } from './components/views/PresetsView';
 import { RecipesView } from './components/views/RecipesView';
@@ -55,6 +58,9 @@ const StudioMainContent: React.FC = () => {
           <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
             <ErrorBoundary fallbackTitle="Workspace View Error">
               {activeView === 'create' && <CreateWorkspace />}
+              {activeView === 'quick-prompts' && <QuickImagePromptStudioView />}
+              {activeView === 'idea-generator' && <IdeaGeneratorView />}
+              {activeView === 'ref-to-prod' && <ReferenceToProductionView />}
               {activeView === 'recipes' && <RecipesView />}
               {activeView === 'assistant' && <ProductionAssistantView />}
               {activeView === 'workflow' && <ProductionWorkflowView />}

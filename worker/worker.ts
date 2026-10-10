@@ -544,7 +544,283 @@ Please analyze this video's visual atmosphere, cinematic framing, motion physics
         return Response.json({ success: true, modelUsed: usedModel, data: finalItem }, { headers: corsHeaders });
       }
 
-      // 6. Assistant Endpoint
+      // 6. Quick Image Prompt
+      if (path === '/api/gemini/quick-image-prompt' && request.method === 'POST') {
+        if (!env.GEMINI_API_KEY) {
+          return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
+        }
+        const body = (await request.json()) as any;
+        const { mode = 'reference', referenceImage, userInstructions, idea, aspectRatio = '16:9', model: requestedModel } = body;
+
+        const quickSystemInstruction = `You are the Principal Generative AI Image Prompt Engineer for "Ambience Intelligence Studio".
+Respond ONLY with a valid JSON object:
+{
+  "prompt": "Full production image prompt ready for Midjourney/Flux with --ar ${aspectRatio} tag...",
+  "reasoning": "Concise 2-sentence explanation of choices.",
+  "visibleDetails": [],
+  "inferredDetails": []
+}`;
+
+        let userPromptText = '';
+        if (mode === 'reference') {
+          userPromptText = `GENERATE QUICK IMAGE PROMPT FROM REFERENCE:
+Title: "${referenceImage?.title || 'Reference'}"
+Notes: "${referenceImage?.notes || ''}"
+Instructions: "${userInstructions || ''}"
+Aspect Ratio: ${aspectRatio}`;
+        } else {
+          userPromptText = `GENERATE QUICK IMAGE PROMPT FROM IDEA:
+Subject: "${idea?.subject || 'Sanctuary'}"
+Setting: "${idea?.setting || 'Interior'}"
+Mood: "${idea?.mood || 'Cozy'}"
+Constraints: "${idea?.constraints || 'Uninhabited'}"
+Aspect Ratio: ${aspectRatio}`;
+        }
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            response = await ai.models.generateContent({ model: modelCandidate, contents: `${quickSystemInstruction}\n\n${userPromptText}` });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (e) {
+            // try next
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsedData: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsedData = JSON.parse(jsonMatch[1]);
+          else parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { prompt: responseText, reasoning: 'Generated from request parameters.' };
+        }
+
+        return Response.json(
+          {
+            success: true,
+            modelUsed: usedModel,
+            data: {
+              prompt: parsedData.prompt || responseText,
+              reasoning: parsedData.reasoning || 'Synthesized prompt.',
+              visibleDetails: Array.isArray(parsedData.visibleDetails) ? parsedData.visibleDetails : [],
+              inferredDetails: Array.isArray(parsedData.inferredDetails) ? parsedData.inferredDetails : [],
+            },
+          },
+          { headers: corsHeaders }
+        );
+      }
+
+      // 7. Quick Prompt Variations
+      if (path === '/api/gemini/quick-prompt-variations' && request.method === 'POST') {
+        if (!env.GEMINI_API_KEY) {
+          return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
+        }
+        const body = (await request.json()) as any;
+        const { basePrompt, variationLevel = 'balanced', count = 4, userInstructions, model: requestedModel } = body;
+
+        const targetCount = Math.min(Math.max(Number(count) || 4, 1), 6);
+        const variationsSystemInstruction = `You are an expert Image Prompt Architect for "Ambience Intelligence Studio".
+Generate exactly ${targetCount} complete, standalone prompt variations adhering to level ${variationLevel.toUpperCase()}.
+Respond ONLY with valid JSON:
+{
+  "variations": [
+    { "id": "var-1", "title": "Variation Title", "angleSummary": "1 sentence description", "prompt": "Full prompt..." }
+  ]
+}`;
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            response = await ai.models.generateContent({ model: modelCandidate, contents: `${variationsSystemInstruction}\n\nBASE PROMPT:\n"${basePrompt}"\nInstructions: "${userInstructions || ''}"` });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (e) {
+            // try next
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsedData: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsedData = JSON.parse(jsonMatch[1]);
+          else parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { variations: [{ id: 'var-1', title: 'Variation 1', angleSummary: 'Variant', prompt: responseText }] };
+        }
+
+        return Response.json({ success: true, modelUsed: usedModel, variations: parsedData.variations || [] }, { headers: corsHeaders });
+      }
+
+      // 8. Generate Ideas
+      if (path === '/api/gemini/generate-ideas' && request.method === 'POST') {
+        if (!env.GEMINI_API_KEY) {
+          return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
+        }
+        const body = (await request.json()) as any;
+        const { topic = 'Sanctuary', count = 10, creativeObjective = 'Generate ambience video concepts', creativeDirection = 'A balanced mixture', originality = 'Fresh and unexpected', productionComplexity = 'Moderate', model: requestedModel } = body;
+
+        const targetCount = Math.min(Math.max(Number(count) || 10, 1), 20);
+        const ideaSystemInstruction = `Generate ${targetCount} creative idea cards for ambience videos.
+Respond ONLY with valid JSON:
+{
+  "ideas": [
+    {
+      "id": "idea-1",
+      "title": "Title",
+      "coreConcept": "Concept explanation",
+      "visualHook": "Visual hook",
+      "settingAndAtmosphere": "Setting details",
+      "whyItWorks": "Viewer appeal",
+      "productionApproach": "Execution note",
+      "suggestedSubject": "Subject",
+      "suggestedSetting": "Setting",
+      "suggestedMood": "Mood",
+      "suggestedConstraints": "Constraints"
+    }
+  ]
+}`;
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            response = await ai.models.generateContent({ model: modelCandidate, contents: `${ideaSystemInstruction}\n\nTOPIC: "${topic}"\nObjective: "${creativeObjective}"` });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (e) {
+            // try next
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsedData: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsedData = JSON.parse(jsonMatch[1]);
+          else parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { ideas: [] };
+        }
+
+        return Response.json({ success: true, modelUsed: usedModel, ideas: parsedData.ideas || [] }, { headers: corsHeaders });
+      }
+
+      // 9. Develop Idea
+      if (path === '/api/gemini/develop-idea' && request.method === 'POST') {
+        if (!env.GEMINI_API_KEY) {
+          return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
+        }
+        const body = (await request.json()) as any;
+        const { idea, model: requestedModel } = body;
+
+        const developSystemInstruction = `Develop concept into full production blueprint. Return valid JSON:
+{
+  "developedBlueprint": {
+    "title": "Title",
+    "expandedVision": "Vision",
+    "spatialLayout": "Layout",
+    "lightingDynamics": "Lighting",
+    "soundscapeArchitecture": "Audio",
+    "motionAndLooping": "Motion",
+    "recommendedPromptDraft": "Prompt"
+  }
+}`;
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            response = await ai.models.generateContent({ model: modelCandidate, contents: `${developSystemInstruction}\n\nIDEA:\nTitle: ${idea?.title}\nConcept: ${idea?.coreConcept}` });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (e) {
+            // try next
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsedData: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsedData = JSON.parse(jsonMatch[1]);
+          else parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { developedBlueprint: { title: idea?.title || 'Blueprint', expandedVision: idea?.coreConcept || 'Vision' } };
+        }
+
+        return Response.json({ success: true, modelUsed: usedModel, developedBlueprint: parsedData.developedBlueprint || parsedData }, { headers: corsHeaders });
+      }
+
+      // 10. Reference to Production
+      if (path === '/api/gemini/reference-to-production' && request.method === 'POST') {
+        if (!env.GEMINI_API_KEY) {
+          return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });
+        }
+        const body = (await request.json()) as any;
+        const { target = 'both', referenceData, creativeInterpretation, existingImagePrompt, model: requestedModel } = body;
+
+        const refSystemInstruction = `Transform Reference Video characteristics & Creative Interpretation into Opening Image Prompt & Video Motion Prompt. Return valid JSON:
+{
+  "openingImagePrompt": "Full opening image prompt --ar 16:9...",
+  "videoMotionPrompt": "Full video animation prompt...",
+  "reasoning": "Explanation"
+}`;
+
+        const candidateModels = resolveCandidateModels(requestedModel);
+        let response: any = null;
+        let usedModel = candidateModels[0];
+
+        for (const modelCandidate of candidateModels) {
+          try {
+            response = await ai.models.generateContent({
+              model: modelCandidate,
+              contents: `${refSystemInstruction}\n\nREFERENCE: "${referenceData?.title || 'Reference'}"\nCREATIVE INTERPRETATION:\nSubject: "${creativeInterpretation?.subject}"\nSetting: "${creativeInterpretation?.setting}"\nStyle: "${creativeInterpretation?.visualStyle}"\n${existingImagePrompt ? `FINALIZED IMAGE PROMPT:\n"${existingImagePrompt}"` : ''}`,
+            });
+            if (response && response.text) {
+              usedModel = modelCandidate;
+              break;
+            }
+          } catch (e) {
+            // try next
+          }
+        }
+
+        const responseText = response?.text || '';
+        let parsedData: any = {};
+        try {
+          const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+          if (jsonMatch) parsedData = JSON.parse(jsonMatch[1]);
+          else parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { openingImagePrompt: responseText, videoMotionPrompt: 'Stationary camera with subtle ambient motion.' };
+        }
+
+        return Response.json({ success: true, modelUsed: usedModel, data: { openingImagePrompt: parsedData.openingImagePrompt || responseText, videoMotionPrompt: parsedData.videoMotionPrompt || 'Stationary tripod framing.', reasoning: parsedData.reasoning || 'Adapted reference.' } }, { headers: corsHeaders });
+      }
+
+      // 11. Assistant Endpoint
       if (path === '/api/gemini/assistant' && request.method === 'POST') {
         if (!env.GEMINI_API_KEY) {
           return Response.json({ success: false, error: 'Gemini API key is not configured.' }, { status: 500, headers: corsHeaders });

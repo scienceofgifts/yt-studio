@@ -35,6 +35,9 @@ import { WORLDS_CATALOG } from '../data/catalog';
 
 export type StudioView =
   | 'create'
+  | 'quick-prompts'
+  | 'idea-generator'
+  | 'ref-to-prod'
   | 'projects'
   | 'workflow'
   | 'video-lab'

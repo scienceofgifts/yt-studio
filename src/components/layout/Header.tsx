@@ -129,7 +129,13 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold capitalize text-[#F2EEE6] font-display tracking-wide">
-              {activeView === 'recipes'
+              {activeView === 'quick-prompts'
+                ? 'Quick Image Prompts'
+                : activeView === 'idea-generator'
+                ? 'Idea Generator'
+                : activeView === 'ref-to-prod'
+                ? 'Reference to Production'
+                : activeView === 'recipes'
                 ? 'Production Recipes'
                 : activeView === 'workflow'
                 ? 'Production Workflow'

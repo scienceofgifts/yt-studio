@@ -403,6 +403,216 @@ export function normalizeVideoLabItem(raw: any): ReferenceVideoLabItem {
   };
 }
 
+export function normalizeProject(raw: any): Project {
+  const item = raw && typeof raw === 'object' ? raw : {};
+  const defaultConfig = createDefaultAmbienceConfig();
+  const compiled = compilePrompts(item.config || defaultConfig);
+
+  const config: AmbienceConfig = {
+    ...defaultConfig,
+    ...(item.config || {}),
+    sky: { ...defaultConfig.sky, ...(item.config?.sky || {}) },
+    water: { ...defaultConfig.water, ...(item.config?.water || {}) },
+    lighting: { ...defaultConfig.lighting, ...(item.config?.lighting || {}) },
+    elements: {
+      ...defaultConfig.elements,
+      ...(item.config?.elements || {}),
+      lightSources: Array.isArray(item.config?.elements?.lightSources) ? item.config.elements.lightSources : defaultConfig.elements.lightSources,
+      interiorObjects: Array.isArray(item.config?.elements?.interiorObjects) ? item.config.elements.interiorObjects : defaultConfig.elements.interiorObjects,
+      outdoorElements: Array.isArray(item.config?.elements?.outdoorElements) ? item.config.elements.outdoorElements : defaultConfig.elements.outdoorElements,
+      livingSubjects: Array.isArray(item.config?.elements?.livingSubjects) ? item.config.elements.livingSubjects : defaultConfig.elements.livingSubjects,
+    },
+    camera: { ...defaultConfig.camera, ...(item.config?.camera || {}) },
+    visualStyle: { ...defaultConfig.visualStyle, ...(item.config?.visualStyle || {}) },
+    video: {
+      ...defaultConfig.video,
+      ...(item.config?.video || {}),
+      subjects: Array.isArray(item.config?.video?.subjects) ? item.config.video.subjects : defaultConfig.video.subjects,
+    },
+    music: {
+      ...defaultConfig.music,
+      ...(item.config?.music || {}),
+      moods: Array.isArray(item.config?.music?.moods) ? item.config.music.moods : defaultConfig.music.moods,
+      instrumentation: Array.isArray(item.config?.music?.instrumentation) ? item.config.music.instrumentation : defaultConfig.music.instrumentation,
+      environmentalSoundLayers: Array.isArray(item.config?.music?.environmentalSoundLayers) ? item.config.music.environmentalSoundLayers : defaultConfig.music.environmentalSoundLayers,
+    },
+  };
+
+  const drafts: PromptDrafts = {
+    imagePrompt: typeof item.drafts?.imagePrompt === 'string' ? item.drafts.imagePrompt : compiled.imagePrompt,
+    imagePromptLocked: Boolean(item.drafts?.imagePromptLocked),
+    videoPrompt: typeof item.drafts?.videoPrompt === 'string' ? item.drafts.videoPrompt : compiled.videoPrompt,
+    videoPromptLocked: Boolean(item.drafts?.videoPromptLocked),
+    musicPrompt: typeof item.drafts?.musicPrompt === 'string' ? item.drafts.musicPrompt : compiled.musicPrompt,
+    musicPromptLocked: Boolean(item.drafts?.musicPromptLocked),
+  };
+
+  return {
+    id: item.id || `proj-${Date.now()}`,
+    name: item.name || 'Untitled Ambience Project',
+    description: item.description || '',
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now(),
+    stage: item.stage || 'concept',
+    completedStages: Array.isArray(item.completedStages) ? item.completedStages : [],
+    archived: Boolean(item.archived),
+    checklist: {
+      imageGenerated: Boolean(item.checklist?.imageGenerated),
+      videoLooped: Boolean(item.checklist?.videoLooped),
+      audioLayered: Boolean(item.checklist?.audioLayered),
+      metadataDrafted: Boolean(item.checklist?.metadataDrafted),
+      qualityChecked: Boolean(item.checklist?.qualityChecked),
+      exported: Boolean(item.checklist?.exported),
+    },
+    productionMetadata: {
+      youtubeTitle: item.productionMetadata?.youtubeTitle || `${item.name || 'Atmospheric Ambience'} | 3 Hours Ambience`,
+      youtubeDescription: item.productionMetadata?.youtubeDescription || 'Relaxing ambience video by Aesthetic Noise.',
+      youtubeTags: Array.isArray(item.productionMetadata?.youtubeTags) ? item.productionMetadata.youtubeTags : ['ambience', 'study music', 'aesthetic noise'],
+      pinnedComment: item.productionMetadata?.pinnedComment || '',
+      targetDurationMinutes: typeof item.productionMetadata?.targetDurationMinutes === 'number' ? item.productionMetadata.targetDurationMinutes : 180,
+    },
+    assetStatus: {
+      imageStatus: item.assetStatus?.imageStatus || 'not_started',
+      videoStatus: item.assetStatus?.videoStatus || 'not_started',
+      musicStatus: item.assetStatus?.musicStatus || 'not_started',
+      motionModelUsed: item.assetStatus?.motionModelUsed,
+      audioDurationMinutes: item.assetStatus?.audioDurationMinutes || 180,
+    },
+    config,
+    drafts,
+  };
+}
+
+export function normalizePreset(raw: any): Preset {
+  const item = raw && typeof raw === 'object' ? raw : {};
+  const defaultConfig = createDefaultAmbienceConfig();
+
+  const config: AmbienceConfig = {
+    ...defaultConfig,
+    ...(item.config || {}),
+    sky: { ...defaultConfig.sky, ...(item.config?.sky || {}) },
+    water: { ...defaultConfig.water, ...(item.config?.water || {}) },
+    lighting: { ...defaultConfig.lighting, ...(item.config?.lighting || {}) },
+    elements: { ...defaultConfig.elements, ...(item.config?.elements || {}) },
+    camera: { ...defaultConfig.camera, ...(item.config?.camera || {}) },
+    visualStyle: { ...defaultConfig.visualStyle, ...(item.config?.visualStyle || {}) },
+    video: { ...defaultConfig.video, ...(item.config?.video || {}) },
+    music: { ...defaultConfig.music, ...(item.config?.music || {}) },
+  };
+
+  return {
+    id: item.id || `preset-${Date.now()}`,
+    name: item.name || 'Atmospheric Preset',
+    category: item.category || 'Custom Worlds',
+    description: item.description || '',
+    isStarter: Boolean(item.isStarter),
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    config,
+  };
+}
+
+export function normalizeRecipe(raw: any): ProductionRecipe {
+  const item = raw && typeof raw === 'object' ? raw : {};
+  const defaultConfig = createDefaultAmbienceConfig();
+
+  const config: AmbienceConfig = {
+    ...defaultConfig,
+    ...(item.config || {}),
+  };
+
+  return {
+    id: item.id || `recipe-${Date.now()}`,
+    name: item.name || 'Production Recipe',
+    description: item.description || '',
+    category: item.category || 'Custom Recipe',
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now(),
+    version: typeof item.version === 'number' ? item.version : 1,
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    favorite: Boolean(item.favorite),
+    archived: Boolean(item.archived),
+    config,
+    promptTemplates: {
+      imagePrompt: item.promptTemplates?.imagePrompt || item.promptTemplates?.imagePromptTemplate || '',
+      videoPrompt: item.promptTemplates?.videoPrompt || item.promptTemplates?.videoPromptTemplate || '',
+      musicPrompt: item.promptTemplates?.musicPrompt || item.promptTemplates?.musicPromptTemplate || '',
+    },
+    linkedLessonIds: Array.isArray(item.linkedLessonIds) ? item.linkedLessonIds : [],
+    linkedProjectIds: Array.isArray(item.linkedProjectIds) ? item.linkedProjectIds : [],
+    linkedVideoLabItemIds: Array.isArray(item.linkedVideoLabItemIds) ? item.linkedVideoLabItemIds : [],
+  };
+}
+
+export function normalizeReference(raw: any): ReferenceItem {
+  const item = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: item.id || `ref-${Date.now()}`,
+    title: item.title || 'Reference Item',
+    category: item.category || 'General Inspiration',
+    imageUrl: item.imageUrl || '',
+    mimeType: item.mimeType || 'image/jpeg',
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    roles: Array.isArray(item.roles) ? item.roles : ['General inspiration'],
+    assignedProjectIds: Array.isArray(item.assignedProjectIds) ? item.assignedProjectIds : [],
+    notes: item.notes || '',
+    atmosphereKeywords: Array.isArray(item.atmosphereKeywords) ? item.atmosphereKeywords : [],
+    colorNotes: item.colorNotes || '',
+    audioNotes: item.audioNotes || '',
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    analysis: item.analysis,
+  };
+}
+
+export function normalizeVideo(raw: any): VideoPerformanceRecord {
+  const item = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: item.id || `vid-${Date.now()}`,
+    title: item.title || 'YouTube Video Record',
+    youtubeUrl: item.youtubeUrl || item.url || '',
+    youtubeVideoId: item.youtubeVideoId || item.youtubeId || '',
+    thumbnailUrl: item.thumbnailUrl || '',
+    publicationDate: typeof item.publicationDate === 'string' ? item.publicationDate : new Date(typeof item.publishedAt === 'number' ? item.publishedAt : Date.now()).toISOString().split('T')[0],
+    status: item.status || 'Published',
+    notes: item.notes || '',
+    projectId: item.projectId || undefined,
+    projectName: item.projectName || undefined,
+    imagePromptVersionId: item.imagePromptVersionId || undefined,
+    videoPromptVersionId: item.videoPromptVersionId || undefined,
+    musicPromptVersionId: item.musicPromptVersionId || undefined,
+    referenceImageIds: Array.isArray(item.referenceImageIds) ? item.referenceImageIds : [],
+    lessonIds: Array.isArray(item.lessonIds) ? item.lessonIds : [],
+    metrics: {
+      views: typeof item.metrics?.views === 'number' ? item.metrics.views : 0,
+      watchTimeHours: typeof item.metrics?.watchTimeHours === 'number' ? item.metrics.watchTimeHours : 0,
+      averageViewDurationMinutes: typeof item.metrics?.averageViewDurationMinutes === 'number' ? item.metrics.averageViewDurationMinutes : 0,
+      averagePercentageViewed: typeof item.metrics?.averagePercentageViewed === 'number' ? item.metrics.averagePercentageViewed : 0,
+      retentionAt30s: typeof item.metrics?.retentionAt30s === 'number' ? item.metrics.retentionAt30s : 0,
+      clickThroughRate: typeof item.metrics?.clickThroughRate === 'number' ? item.metrics.clickThroughRate : 0,
+      likes: typeof item.metrics?.likes === 'number' ? item.metrics.likes : 0,
+      comments: typeof item.metrics?.comments === 'number' ? item.metrics.comments : 0,
+      subscribersGained: typeof item.metrics?.subscribersGained === 'number' ? item.metrics.subscribersGained : 0,
+    },
+    decisions: item.decisions || {
+      worldId: 'custom',
+      worldName: 'Custom World',
+      settingType: 'indoor',
+      primaryWeather: 'rain',
+      lightingType: 'ambient',
+      colorTemperature: 'warm-amber',
+      musicStyle: 'Ambient',
+      audioDurationMinutes: 180,
+      audioLayerCount: 3,
+      hasWater: false,
+      cameraAngle: 'eye-level',
+      lockedCamera: true,
+      visualStyle: 'cinematic-realism',
+      motionIntensity: 'ultra-slow',
+    },
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now(),
+  };
+}
+
 const DEFAULT_VIDEO_LAB_ITEMS: ReferenceVideoLabItem[] = [
   {
     id: 'vlab-hogwarts-rain',
